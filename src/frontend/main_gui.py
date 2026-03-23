@@ -6,33 +6,23 @@ import tkinter
 import customtkinter as ctk
 from pathlib import Path
 
-# Función para obtener rutas de recursos de forma compatible con PyInstaller
-def get_resource_path(relative_path):
+# Añadir el directorio raíz del proyecto al path de Python
+def get_base_path():
     """
-    Obtener ruta absoluta de recursos para ejecutable empaquetado
-    
-    Args:
-        relative_path (str): Ruta relativa al ejecutable
-    
-    Returns:
-        str: Ruta absoluta del recurso
+    Obtener la ruta base para recursos, compatible con PyInstaller
     """
     try:
         # Ruta base para recursos en ejecutable empaquetado
         base_path = sys._MEIPASS
     except Exception:
         # Ruta base para ejecución normal (desarrollo)
-        base_path = os.path.abspath(".")
+        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     
-    return os.path.normpath(os.path.join(base_path, relative_path))
+    return base_path
 
-# Añadir el directorio raíz del proyecto al path de Python
-try:
-    project_root = sys._MEIPASS
-except Exception:
-    project_root = str(Path(__file__).resolve().parent.parent.parent)
-
-sys.path.insert(0, project_root)
+# Añadir ruta base al sys.path
+base_path = get_base_path()
+sys.path.insert(0, base_path)
 
 # Importar módulos del backend
 from src.backend import main as backend_main
@@ -58,7 +48,7 @@ class SmartCVFilterApp(ctk.CTk):
         ctk.set_default_color_theme("blue")
 
         # Variables
-        default_inputs_path = get_resource_path(os.path.join('src', 'backend', 'inputs'))
+        default_inputs_path = os.path.join(base_path, 'src', 'backend', 'inputs')
         self.input_folder = ctk.StringVar(value=default_inputs_path)
 
         # Crear componentes de la interfaz

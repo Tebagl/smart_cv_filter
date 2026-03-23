@@ -1,12 +1,25 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_all
+
+datas = [('src', 'src')]
+binaries = []
+hiddenimports = []
+tmp_ret = collect_all('customtkinter')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('pdfplumber')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('sqlalchemy')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('google.generativeai')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
-    ['/home/usuario/proyectos/smart_cv_filter/src/frontend/main_gui.py'],
+    ['src/frontend/main_gui.py'],
     pathex=[],
-    binaries=[],
-    datas=[('/home/usuario/proyectos/smart_cv_filter/src/backend', 'backend'), ('/home/usuario/proyectos/smart_cv_filter/src/frontend', 'frontend'), ('/home/usuario/proyectos/smart_cv_filter/src/backend/inputs', 'inputs'), ('/home/usuario/proyectos/smart_cv_filter/src/backend/output', 'output')],
-    hiddenimports=['customtkinter', 'sqlalchemy', 'spacy'],
+    binaries=binaries,
+    datas=datas,
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

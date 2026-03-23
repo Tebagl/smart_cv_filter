@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import subprocess
 
 def build_executable():
@@ -9,7 +10,20 @@ def build_executable():
     # Configuración de rutas
     project_root = os.path.dirname(os.path.abspath(__file__))
     main_script = os.path.join(project_root, 'src', 'frontend', 'main_gui.py')
-    pyinstaller_path = os.path.expanduser('~/.local/bin/pyinstaller')
+    pyinstaller_path = os.path.join(os.path.expanduser('~'), '.local', 'bin', 'pyinstaller')
+    site_packages = os.path.join(os.path.expanduser('~'), '.local', 'lib', 'python3.10', 'site-packages')
+    
+    # Limpiar directorios anteriores
+    for dir_to_clean in ['build', 'dist']:
+        if os.path.exists(dir_to_clean):
+            shutil.rmtree(dir_to_clean)
+    
+    # Dependencias a incluir
+    dependencies = [
+        'python-dotenv', 'pathlib', 'sqlalchemy', 'alembic', 
+        'pdfplumber', 'python-docx', 'spacy', 'google-generativeai', 
+        'structlog', 'customtkinter', 'typing-extensions'
+    ]
     
     # Comando de PyInstaller
     pyinstaller_cmd = [
@@ -19,21 +33,40 @@ def build_executable():
         '--name', 'SmartCVFilter',
         
         # Añadir recursos adicionales
+        '--add-data', f'{project_root}/src:src',
         '--add-data', f'{project_root}/src/backend:backend',
         '--add-data', f'{project_root}/src/frontend:frontend',
         '--add-data', f'{project_root}/src/backend/inputs:inputs',
         '--add-data', f'{project_root}/src/backend/output:output',
-        
+    ]
+    
+    # Añadir --collect-all para cada dependencia
+    for dep in dependencies:
+        pyinstaller_cmd.extend(['--collect-all', dep])
+    
+    # Hidden imports y configuraciones adicionales
+    pyinstaller_cmd.extend([
         # Hidden imports para dependencias
-        '--hidden-import', 'customtkinter',
         '--hidden-import', 'sqlalchemy',
+        '--hidden-import', 'sqlalchemy.orm',
+        '--hidden-import', 'sqlalchemy.pool',
+        '--hidden-import', 'sqlalchemy.sql',
+        '--hidden-import', 'sqlalchemy.engine',
+        '--hidden-import', 'sqlalchemy.dialects',
+        '--hidden-import', 'sqlalchemy.ext',
+        '--hidden-import', 'sqlalchemy.types',
+        '--hidden-import', 'customtkinter',
         '--hidden-import', 'spacy',
+        '--hidden-import', 'google.generativeai',
+        
+        # Paths adicionales
+        '--paths', site_packages,
         
         # Configuraciones adicionales
         '--clean',             # Limpiar caché de PyInstaller
         
         main_script
-    ]
+    ])
     
     print("Construyendo ejecutable de Smart CV Filter...")
     
