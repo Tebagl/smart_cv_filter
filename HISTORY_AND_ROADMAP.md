@@ -38,32 +38,50 @@ Sistema de filtrado y evaluación semántica de CVs utilizando técnicas avanzad
   * Funcionalidad de limpieza de entorno de demostración
   * Mejora de reproducibilidad y gestión de demos
 
+### Versión 0.7 (2026-03-23)
+- Módulo 4: Interfaz de Usuario de Escritorio
+  * Implementación de GUI con customtkinter
+  * Soporte para selección de carpeta de CVs
+  * Ejecución de análisis con logging en tiempo real
+  * Botón de reset de demo
+  * Soporte de modo oscuro/claro
+  * Diseño responsivo y moderno
+
 ## Hoja de Ruta Futura
 
-### Próximos Hitos (v0.7 - v0.9)
-- [ ] Implementación de interfaz de usuario
-- [ ] Integración de más fuentes de datos
-- [ ] Mejora de algoritmos de matching semántico
-- [ ] Desarrollo de panel de administración
+### Próximos Hitos (v0.8 - v1.0)
+- [ ] Refinamiento de la interfaz de usuario
+- [ ] Añadir más opciones de configuración
+- [ ] Implementar exportación de resultados
+- [ ] Optimizar rendimiento de la GUI
+- [ ] Soporte para múltiples idiomas
+- [ ] Integración con sistemas de gestión de RR.HH.
 - [ ] Implementación de sistema de retroalimentación
 
 ### Objetivos a Largo Plazo
-- Soporte multilenguaje
-- Integración con sistemas de gestión de recursos humanos
-- Implementación de machine learning para mejora continua
 - Expansión de capacidades de evaluación semántica
+- Integración con plataformas de reclutamiento
+- Desarrollo de versión web
+- Implementación de machine learning para mejora continua
+- Soporte multiplataforma
 
 ## Principios de Diseño
 - Privacidad por diseño
 - Transparencia en evaluación
 - Escalabilidad
 - Adaptabilidad
+- Experiencia de usuario intuitiva
 
 ## Métricas de Éxito
 - Precisión en evaluación de CVs
 - Reducción de tiempo de reclutamiento
 - Minimización de sesgos en selección
 - Cumplimiento normativo (GDPR, etc.)
+- Satisfacción del usuario
+- Facilidad de uso
 
 ## Contribuciones
 Las contribuciones y sugerencias son bienvenidas. Por favor, consultar CONTRIBUTING.md para más detalles.
+
+## Licencia
+[Especificar detalles de la licencia]
