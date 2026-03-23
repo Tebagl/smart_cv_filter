@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -34,7 +35,7 @@ class DatabaseManager:
         """
         Initialize database connection and session factory.
 
-        :param db_url: Database connection URL. Defaults to SQLite in project root.
+        :param db_url: Database connection URL. Defaults to SQLite in executable directory.
         :param echo: Enable SQLAlchemy query logging
         :param pool_recycle: Connection pool recycle time in seconds
         """
@@ -44,11 +45,15 @@ class DatabaseManager:
 
         # Determine database URL
         if db_url is None:
+            # Use executable directory for database
+            try:
+                # For PyInstaller bundled applications
+                base_path = sys.executable if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+            except Exception:
+                base_path = os.path.dirname(os.path.abspath(__file__))
+
             # Create data directory if it doesn't exist
-            import os
-            
-            # Ensure data directory exists
-            data_dir = Path(__file__).resolve().parent.parent / 'data'
+            data_dir = Path(base_path) / 'data'
             os.makedirs(data_dir, exist_ok=True)
             
             # Set database path
@@ -67,6 +72,9 @@ class DatabaseManager:
             poolclass=NullPool,  # Disable connection pooling for simplicity
             pool_recycle=pool_recycle
         )
+
+        # Create all tables defined in models
+        Base.metadata.create_all(self._engine)
 
         # Create session factory
         self._session_factory = sessionmaker(bind=self._engine)
@@ -99,32 +107,3 @@ class DatabaseManager:
         """
         if session:
             session.close()
-
-    def execute_transaction(self, transaction_func):
-        """
-        Execute a database transaction with automatic commit/rollback.
-
-        :param transaction_func: Function containing database operations
-        :return: Result of the transaction function
-        """
-        session = self.get_session()
-        try:
-            result = transaction_func(session)
-            session.commit()
-            return result
-        except Exception as e:
-            session.rollback()
-            raise
-        finally:
-            self.close_session(session)
-
-# Global database manager instance
-db_manager = DatabaseManager()
-
-def init_database(drop_existing: bool = False):
-    """
-    Initialize the database with optional table recreation.
-
-    :param drop_existing: Drop and recreate all tables
-    """
-    db_manager.create_tables(drop_existing)

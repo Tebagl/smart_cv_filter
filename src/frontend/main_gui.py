@@ -5,6 +5,7 @@ import logging
 import tkinter
 import customtkinter as ctk
 from pathlib import Path
+import queue
 
 # Añadir el directorio raíz del proyecto al path de Python
 def get_base_path():
@@ -47,12 +48,19 @@ class SmartCVFilterApp(ctk.CTk):
         ctk.set_appearance_mode("system")  # Modo oscuro/claro automático
         ctk.set_default_color_theme("blue")
 
+        # Cola para comunicación entre threads
+        self.log_queue = queue.Queue()
+        self.progress_queue = queue.Queue()
+
         # Variables
         default_inputs_path = os.path.join(base_path, 'src', 'backend', 'inputs')
         self.input_folder = ctk.StringVar(value=default_inputs_path)
 
         # Crear componentes de la interfaz
         self.create_widgets()
+
+        # Configurar actualización de logs y progreso
+        self.after(100, self.check_queues)
 
     def create_widgets(self):
         # Frame principal
@@ -127,7 +135,7 @@ class SmartCVFilterApp(ctk.CTk):
         os.environ['CV_INPUT_DIR'] = self.input_folder.get()
         
         # Iniciar análisis en thread separado
-        analysis_thread = threading.Thread(target=self.analysis_worker)
+        analysis_thread = threading.Thread(target=self.analysis_worker, daemon=True)
         analysis_thread.start()
 
     def analysis_worker(self):
@@ -147,23 +155,35 @@ class SmartCVFilterApp(ctk.CTk):
 
             # Mostrar logs en UI
             logs = redirected_output.getvalue()
-            self.update_log(logs)
+            self.log_queue.put(logs)
             
             # Actualizar progreso
-            self.update_progress(1.0)
+            self.progress_queue.put(1.0)
 
         except Exception as e:
-            self.update_log(f"Error en análisis: {e}")
-            self.update_progress(0)
+            error_msg = f"Error en análisis: {e}"
+            self.log_queue.put(error_msg)
+            self.progress_queue.put(0)
 
-    def update_log(self, message):
-        """Actualizar área de logging de forma segura"""
-        self.log_text.insert("end", message + "\n")
-        self.log_text.see("end")
+    def check_queues(self):
+        """Revisar colas de logs y progreso de forma segura"""
+        try:
+            # Procesar logs
+            while not self.log_queue.empty():
+                message = self.log_queue.get_nowait()
+                self.log_text.insert("end", message + "\n")
+                self.log_text.see("end")
 
-    def update_progress(self, value):
-        """Actualizar barra de progreso de forma segura"""
-        self.progress_bar.set(value)
+            # Procesar progreso
+            while not self.progress_queue.empty():
+                value = self.progress_queue.get_nowait()
+                self.progress_bar.set(value)
+
+        except queue.Empty:
+            pass
+
+        # Programar la próxima revisión de colas
+        self.after(100, self.check_queues)
 
     def reset_demo(self):
         """Resetear entorno de demostración"""
