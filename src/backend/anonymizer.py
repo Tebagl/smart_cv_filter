@@ -3,7 +3,7 @@ import spacy
 import subprocess
 import sys
 
-class LocalAnonymizer:
+class Anonymizer:
     """
     Módulo 2: LocalAnonymizer
     Se encarga de detectar y reemplazar Datos de Identificación Personal (PII)
@@ -63,7 +63,7 @@ class LocalAnonymizer:
 
 if __name__ == "__main__":
     # Prueba rápida aislada si se ejecuta directamente el archivo
-    anonymizer = LocalAnonymizer()
+    anonymizer = Anonymizer()
     sample_text = "El candidato Juan Perez, con email jperez@mail.com y teléfono +34 600 123 456, solicita el puesto."
     print("Original:", sample_text)
     print("Anonimizado:", anonymizer.anonymize(sample_text))

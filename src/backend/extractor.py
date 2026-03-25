@@ -6,6 +6,22 @@ try:
 except ImportError:
     docx = None
 
+
+class CVExtractor:
+    """Clase para extraer texto de archivos de CV"""
+    def __init__(self):
+        pass
+
+    def extract_text(self, file_path):
+        """Lee el contenido de un archivo de texto"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            print(f"Error al extraer texto de {file_path}: {e}")
+            return ""
+
+
 class UniversalExtractor:
     """
     Módulo 1: UniversalExtractor

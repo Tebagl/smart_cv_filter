@@ -26,9 +26,7 @@ base_path = get_base_path()
 sys.path.insert(0, base_path)
 
 # Importar módulos del backend
-from src.backend import main as backend_main
-from src.backend.reset_demo import reset_demo
-
+from src.backend.cv_handler import CandidateRepository
 # Configuración de logging
 logging.basicConfig(
     level=logging.INFO, 
@@ -39,6 +37,19 @@ logger = logging.getLogger(__name__)
 class SmartCVFilterApp(ctk.CTk):
     def __init__(self):
         super().__init__()
+        # 🚀 CONEXIÓN CON EL MOTOR REAL
+        # Importante: Recuerda que CandidateRepository necesita la sesión de la DB
+      # 🚀 CONEXIÓN CON TU DATABASE MANAGER REAL
+        from src.backend.database import DatabaseManager
+
+        # 1. Inicializamos el Manager (esto crea las tablas y el motor)
+        self.db_manager = DatabaseManager()
+        
+        # 2. Le pedimos una sesión activa
+        self.db_session = self.db_manager.get_session()
+        
+        # 3. Se la pasamos al repositorio (tu archivo cv_handler.py)
+        self.repo = CandidateRepository(self.db_session)
 
         # Configuración de la ventana
         self.title("Smart CV Filter")
@@ -139,31 +150,43 @@ class SmartCVFilterApp(ctk.CTk):
         analysis_thread.start()
 
     def analysis_worker(self):
-        """Worker para ejecutar análisis en background"""
+        """Worker que lee archivos REALES de la carpeta inputs"""
         try:
-            # Redirigir stdout para capturar logs
-            import io
-            import sys
-            old_stdout = sys.stdout
-            redirected_output = sys.stdout = io.StringIO()
-
-            # Ejecutar análisis
-            backend_main.main()
-
-            # Restaurar stdout
-            sys.stdout = old_stdout
-
-            # Mostrar logs en UI
-            logs = redirected_output.getvalue()
-            self.log_queue.put(logs)
+            folder_path = self.input_folder.get()
+            self.log_queue.put(f"📂 Escaneando carpeta: {folder_path}...")
             
-            # Actualizar progreso
-            self.progress_queue.put(1.0)
+            # 1. Buscar archivos .txt
+            files = list(Path(folder_path).glob("*.txt"))
+            
+            if not files:
+                self.log_queue.put("⚠️ No se encontraron archivos .txt en la carpeta.")
+                self.progress_queue.put(0)
+                return
+
+            self.log_queue.put(f"📑 Encontrados {len(files)} archivos. Iniciando...")
+
+            for i, file_path in enumerate(files):
+                self.log_queue.put(f"🔍 Procesando: {file_path.name}")
+                
+                # Leer el contenido del archivo real
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    contenido = f.read()
+
+                # 🚀 PASARLO AL MOTOR SEMÁNTICO
+                resultado = self.repo.process_cv(contenido)
+                
+                self.log_queue.put(f"✅ ÉXITO: {file_path.name} guardado en DB.")
+                
+                # Actualizar progreso
+                progress = (i + 1) / len(files)
+                self.progress_queue.put(progress)
+
+            self.log_queue.put("\n🎊 ¡Procesamiento completo de todos los archivos!")
 
         except Exception as e:
-            error_msg = f"Error en análisis: {e}"
-            self.log_queue.put(error_msg)
+            self.log_queue.put(f"❌ Error crítico: {str(e)}")
             self.progress_queue.put(0)
+
 
     def check_queues(self):
         """Revisar colas de logs y progreso de forma segura"""
@@ -187,11 +210,10 @@ class SmartCVFilterApp(ctk.CTk):
 
     def reset_demo(self):
         """Resetear entorno de demostración"""
-        try:
-            reset_demo()
-            self.log_text.insert("end", "Entorno de demo reseteado exitosamente.\n")
-        except Exception as e:
-            self.log_text.insert("end", f"Error al resetear demo: {e}\n")
+        self.log_text.delete("1.0", "end")
+        self.log_text.insert("end", "Logs limpiados. Listo para nuevo análisis.\n")
+        self.progress_bar.set(0)
+
 
 def main():
     """Punto de entrada de la aplicación"""

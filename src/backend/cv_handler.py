@@ -3,8 +3,13 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-
 from .models import Candidate, Resume, WorkExperience, Education, Application
+import logging
+from src.backend.anonymizer import Anonymizer
+from src.backend.embeddings_engine import LocalEmbeddings
+
+logger = logging.getLogger(__name__)
+
 
 class CandidateRepository:
     """
@@ -19,6 +24,10 @@ class CandidateRepository:
         :param session: SQLAlchemy database session
         """
         self._session = session
+        # 🚀 ACTIVAMOS LOS MOTORES DE IA AQUÍ
+        # Estos son los que usa tu función process_cv() abajo
+        self.anonymizer = Anonymizer()
+        self.embeddings_engine = LocalEmbeddings()
 
     def create_candidate(
         self, 
@@ -121,3 +130,25 @@ class CandidateRepository:
         return resume
 
     # ... (rest of the methods remain unchanged)
+
+    # --- NUEVO MÉTODO PARA LA INTERFAZ (PROCESAMIENTO IA) ---
+
+    def process_cv(self, raw_text: str):
+        """
+        Este método es el puente. Usa la IA para limpiar el texto y 
+        prepararlo, pero sin romper tu lógica de base de datos.
+        """
+        try:
+            # Anonimizar (IA)
+            clean_text = self.anonymizer.anonymize(raw_text)
+            
+            # Generar Vector (IA)
+            vector = self.embeddings_engine.get_embeddings(clean_text)
+            
+            logger.info("IA: CV procesado correctamente.")
+            
+            # Devolvemos el resultado para que la ventana azul lo muestre
+            return {"status": "success", "text": clean_text, "vector": vector}
+        except Exception as e:
+            logger.error(f"Error en el motor de IA: {e}")
+            raise
