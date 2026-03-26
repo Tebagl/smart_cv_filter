@@ -172,10 +172,20 @@ class SmartCVFilterApp(ctk.CTk):
                 with open(file_path, 'r', encoding='utf-8') as f:
                     contenido = f.read()
 
-                # 🚀 PASARLO AL MOTOR SEMÁNTICO
+                # 🚀 PASARLO AL MOTOR SEMÁNTICO (Llama a cv_handler.py)
                 resultado = self.repo.process_cv(contenido)
                 
-                self.log_queue.put(f"✅ ÉXITO: {file_path.name} guardado en DB.")
+                # --- NUEVA LÓGICA DE VISUALIZACIÓN ---
+                if resultado.get("status") == "success":
+                    estado = resultado.get('decision', 'ANALIZADO')
+                    motivo = resultado.get('reason', 'Sin detalles')
+                    
+                    self.log_queue.put(f"   📢 ESTADO: {estado}")
+                    self.log_queue.put(f"   📝 MOTIVO: {motivo}")
+                    self.log_queue.put("-" * 45)
+                else:
+                    self.log_queue.put(f"❌ Error en {file_path.name}: {resultado.get('reason')}")
+                # -------------------------------------
                 
                 # Actualizar progreso
                 progress = (i + 1) / len(files)

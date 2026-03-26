@@ -1,154 +1,62 @@
 from typing import List, Optional
 from datetime import datetime
+import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from .models import Candidate, Resume, WorkExperience, Education, Application
-import logging
+
+# Imports internos
+from src.backend.models import Candidate, Resume
 from src.backend.anonymizer import Anonymizer
 from src.backend.embeddings_engine import LocalEmbeddings
+from src.backend.analyzer import CVAnalyzer
 
 logger = logging.getLogger(__name__)
 
-
 class CandidateRepository:
-    """
-    Repository for managing candidate-related database operations.
-    Provides an abstraction layer for CRUD operations on Candidate entities.
-    """
-
     def __init__(self, session: Session):
-        """
-        Initialize the repository with a database session.
-
-        :param session: SQLAlchemy database session
-        """
         self._session = session
-        # 🚀 ACTIVAMOS LOS MOTORES DE IA AQUÍ
-        # Estos son los que usa tu función process_cv() abajo
         self.anonymizer = Anonymizer()
         self.embeddings_engine = LocalEmbeddings()
-
-    def create_candidate(
-        self, 
-        first_name: str, 
-        last_name: str, 
-        email: str, 
-        phone: Optional[str] = None, 
-        address: Optional[str] = None
-    ) -> Candidate:
-        """
-        Create a new candidate in the database, handling potential duplicates.
-
-        :param first_name: Candidate's first name
-        :param last_name: Candidate's last name
-        :param email: Candidate's email address
-        :param phone: Optional phone number
-        :param address: Optional address
-        :return: Created or existing Candidate object
-        """
-        # First, check if a candidate with this email already exists
-        existing_candidate = self.get_candidate_by_email(email)
-        
-        if existing_candidate:
-            # Update existing candidate's information
-            existing_candidate.firstName = first_name
-            existing_candidate.lastName = last_name
-            existing_candidate.phone = phone or existing_candidate.phone
-            existing_candidate.address = address or existing_candidate.address
-            
-            try:
-                self._session.commit()
-                return existing_candidate
-            except Exception as e:
-                self._session.rollback()
-                print(f"Error updating existing candidate: {e}")
-                raise
-
-        # If no existing candidate, create a new one
-        candidate = Candidate(
-            firstName=first_name,
-            lastName=last_name,
-            email=email,
-            phone=phone,
-            address=address
-        )
-        
-        try:
-            self._session.add(candidate)
-            self._session.commit()
-            return candidate
-        except IntegrityError:
-            # If there's an integrity error (e.g., unique constraint), rollback and handle
-            self._session.rollback()
-            # Try to get the existing candidate again
-            existing_candidate = self.get_candidate_by_email(email)
-            if existing_candidate:
-                return existing_candidate
-            else:
-                # If still can't find the candidate, re-raise the exception
-                raise
+        self.analyzer = CVAnalyzer() # <--- Lo inicializamos aquí una sola vez
 
     def get_candidate_by_email(self, email: str) -> Optional[Candidate]:
-        """
-        Retrieve a candidate by their email address.
+        return self._session.query(Candidate).filter_by(email=email).first()
 
-        :param email: Candidate's email address
-        :return: Candidate object or None if not found
-        """
-        try:
-            return self._session.query(Candidate).filter_by(email=email).first()
-        except Exception as e:
-            print(f"Error retrieving candidate by email: {e}")
-            return None
-
-    # Rest of the methods remain the same as in the original file
-    def add_resume(
-        self, 
-        candidate_id: int, 
-        file_path: str, 
-        file_type: str
-    ) -> Resume:
-        """
-        Add a resume to a candidate's profile.
-
-        :param candidate_id: ID of the candidate
-        :param file_path: Path to the resume file
-        :param file_type: MIME type or file extension
-        :return: Created Resume object
-        """
-        from datetime import datetime
-
-        resume = Resume(
-            candidateId=candidate_id,
-            filePath=file_path,
-            fileType=file_type,
-            uploadDate=datetime.utcnow()
-        )
-        self._session.add(resume)
-        self._session.commit()
-        return resume
-
-    # ... (rest of the methods remain unchanged)
-
-    # --- NUEVO MÉTODO PARA LA INTERFAZ (PROCESAMIENTO IA) ---
+    # --- MÉTODO DE PROCESAMIENTO CON IA ---
 
     def process_cv(self, raw_text: str):
-        """
-        Este método es el puente. Usa la IA para limpiar el texto y 
-        prepararlo, pero sin romper tu lógica de base de datos.
-        """
         try:
-            # Anonimizar (IA)
+            # 1. Intentar leer la descripción del puesto (Job Description)
+            # Ajusta la ruta si tu archivo está en otro sitio
+            jd_path = "src/backend/job_description.txt" 
+            try:
+                with open(jd_path, 'r', encoding='utf-8') as f:
+                    job_desc = f.read()
+            except FileNotFoundError:
+                job_desc = "Perfil técnico general" # Fallback si no hay archivo
+                logger.warning("No se encontró job_description.txt, usando perfil general.")
+
+            # 2. Procesamiento que ya funcionaba
             clean_text = self.anonymizer.anonymize(raw_text)
-            
-            # Generar Vector (IA)
             vector = self.embeddings_engine.get_embeddings(clean_text)
             
-            logger.info("IA: CV procesado correctamente.")
+           # 3. 🧠 LLAMADA AL ANALIZADOR
+            decision = self.analyzer.analyze(raw_text, job_desc) 
             
-            # Devolvemos el resultado para que la ventana azul lo muestre
-            return {"status": "success", "text": clean_text, "vector": vector}
+            # 4. TRADUCCIÓN DE LLAVES (Aquí estaba el fallo)
+            # El analyzer usa "apto" y "motivo", la GUI espera "decision" y "reason"
+            final_status = decision.get('apto') or "ANALIZADO"
+            final_reason = decision.get('motivo') or "Sin detalles disponibles."
+
+            return {
+                "status": "success",
+                "decision": final_status,
+                "reason": final_reason,
+                "text": clean_text
+            }
+       
         except Exception as e:
+            self._session.rollback()
             logger.error(f"Error en el motor de IA: {e}")
-            raise
+            return {"status": "error", "reason": str(e)}

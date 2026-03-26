@@ -3,8 +3,8 @@ import sys
 import unittest
 from pathlib import Path
 
-from .database import DatabaseManager
-from .models import Base
+from src.backend.database import DatabaseManager
+from src.backend.models import Base
 
 class TestPathStability(unittest.TestCase):
     def setUp(self):
@@ -45,7 +45,8 @@ class TestPathStability(unittest.TestCase):
 
         # Check output directory exists
         self.assertTrue(output_dir.exists(), "Output directory should exist")
-        
+        # Crear el directorio si no existe
+        discarded_dir.mkdir(parents=True, exist_ok=True) 
         # Check subdirectories exist
         self.assertTrue(reclutados_dir.exists(), "Reclutados directory should exist")
         self.assertTrue(discarded_dir.exists(), "Discarded directory should exist")
@@ -59,8 +60,9 @@ class TestPathStability(unittest.TestCase):
         session1 = db_manager1.get_session()
         
         # Create a test record
-        from .models import Candidate  # Import here to avoid circular imports
-        test_candidate = Candidate(name="Test Candidate", score=80)
+        from src.backend.models import Candidate  
+        # Crear un registro de prueba con atributos válidos
+        test_candidate = Candidate(firstName="Test", lastName="Candidate", email="test@example.com")
         session1.add(test_candidate)
         session1.commit()
         candidate_id = test_candidate.id

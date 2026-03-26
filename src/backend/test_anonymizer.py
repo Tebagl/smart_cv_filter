@@ -1,11 +1,11 @@
 import unittest
-from anonymizer import LocalAnonymizer
+from anonymizer import Anonymizer
 
 class TestLocalAnonymizer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Inicializa la clase y asegura la descarga de modelos si faltan
-        cls.anonymizer = LocalAnonymizer(model="es_core_news_lg")
+        cls.anonymizer = Anonymizer(model="es_core_news_lg")
 
     def test_anonymize_email(self):
         text = "Contactame a juan@example.com para mas detalles."
