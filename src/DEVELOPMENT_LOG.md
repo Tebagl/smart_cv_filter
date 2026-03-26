@@ -52,3 +52,28 @@ Fase actual: Implementación de Interfaz de Usuario de Escritorio (Módulo 4)
 - Añadir más opciones de configuración
 - Implementar exportación de resultados
 - Optimizar rendimiento de la GUI
+
+## Fecha: 26 de marzo de 2026
+Hito: Transición a Arquitectura de IA 100% Local
+
+- Problema Identificado:
+La arquitectura híbrida previa (Nube + Local) presentaba cuellos de botella críticos al procesar volúmenes reales de datos (70+ CVs). Las limitaciones de cuota de la API de Google Gemini provocaban errores 429 (Too Many Requests), deteniendo el flujo de trabajo. Además, el reintento constante entre la nube y el motor local generaba latencias inaceptables de hasta 2 minutos para apenas 3 archivos.
+
+- Solución Implementada:
+Se ha desconectado por completo la lógica de análisis de cualquier dependencia externa. El sistema ahora opera de forma 100% Local, utilizando el modelo paraphrase-multilingual-MiniLM-L12-v2 integrado en el entorno virtual (.venv).
+
+- Optimizaciones Técnicas Clave:
+
+Carga Única en RAM: El modelo de IA se carga una sola vez al inicio del programa (estilo Singleton), eliminando el tiempo de carga repetitivo por cada CV.
+
+Procesamiento Instantáneo: Al eliminar las llamadas HTTP, el tiempo de análisis por currículum ha pasado de segundos a milisegundos.
+
+Motor de Razonamiento Local: Se ha desarrollado una lógica interna (_get_local_reasoning) que traduce la similitud del coseno (matemática) en explicaciones humanas descriptivas.
+
+Privacidad Total: Los datos de los candidatos no salen nunca del equipo local, garantizando el cumplimiento de normativas de privacidad y eliminando costes de API.
+
+- Estado Actual:
+
+Éxito: Estabilidad total y velocidad ultra-rápida confirmada para lotes de 150+ CVs.
+
+Pendiente: Sincronizar la lógica de clasificación de archivos (mover a carpetas RECLUTADOS/DESCARTADOS) con el nuevo formato de salida local.

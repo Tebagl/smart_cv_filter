@@ -93,3 +93,25 @@ Actualmente entramos en la etapa de Integración y Reglas de Negocio Inteligente
   * Configuración de temperatura del modelo a 0.0 para garantizar respuestas determinísticas
   * Mejora en el manejo de errores de API, especialmente para casos de cuota excedida
   * Adición de un tiempo de espera de 5 segundos entre análisis para respetar límites de la API
+
+### Próximos Pasos y Objetivos a Corto/Medio Plazo:
+
+* **Optimización de Flujo de Archivos (Prioridad Inmediata)**:
+
+* Restaurar la automatización de movimiento de archivos .txt analizados hacia las carpetas de salida según el flag apto generado por la IA local.
+
+* **Refinamiento del Motor Local**:
+
+* Ajustar los umbrales de puntuación (Thresholds) para mejorar la precisión del filtrado automático.
+
+* Implementar un "Análisis por Pilares" local para desglosar la nota en: Experiencia, Habilidades Técnicas y Formación.
+
+* **Mejora de la Interfaz de Usuario (GUI)**:
+
+* Añadir indicadores visuales del estado del modelo local (Cargado/Listo).
+
+* Implementar una vista de "Resumen Estadístico" tras procesar grandes lotes (ej. % de candidatos aptos vs descartados).
+
+* **Exportación de Resultados**:
+
+* Generar reportes automáticos en formato CSV o Excel con el ranking de los 150+ CVs procesados para facilitar la toma de decisiones.
