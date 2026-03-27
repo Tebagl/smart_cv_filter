@@ -78,22 +78,44 @@ Privacidad Total: Los datos de los candidatos no salen nunca del equipo local, g
 
 Pendiente: Sincronizar la lógica de clasificación de archivos (mover a carpetas RECLUTADOS/DESCARTADOS) con el nuevo formato de salida local.
 
-Fecha: 27 de marzo de 2026
-Hito: Implementación de Clasificación Física de Archivos (Post-Procesamiento)
+## Fecha: 27 de marzo de 2026
+# Hito: Implementación de Clasificación Física de Archivos (Post-Procesamiento)
 
-Cambios Realizados:
+# Cambios Realizados:
 
-Automatización del Sistema de Archivos: Se ha integrado una lógica de movimiento de archivos en el analysis_worker de la GUI. El programa ahora clasifica automáticamente los currículums procesados.
+* Automatización del Sistema de Archivos: Se ha integrado una lógica de movimiento de archivos en el analysis_worker de la GUI. El programa ahora clasifica automáticamente los currículums procesados.
 
-Estructura de Salida: Los archivos se mueven desde inputs/ hacia subcarpetas específicas en src/backend/output/:
+* Estructura de Salida: Los archivos se mueven desde inputs/ hacia subcarpetas específicas en src/backend/output/:
 
-RECLUTADOS/: Para candidatos con decisión "SI".
+* RECLUTADOS/: Para candidatos con decisión "SI".
 
-DESCARTADOS/: Para candidatos con decisión "NO".
+* DESCARTADOS/: Para candidatos con decisión "NO".
 
-Refuerzo de la Integridad de Datos: Se ha reordenado el flujo de ejecución para garantizar que la extracción de datos de la IA (puntuación y motivo) ocurra antes del desplazamiento físico del archivo, evitando errores de lectura y asegurando que la interfaz muestre la información correcta (evitando el error de 0% de coincidencia).
+* Refuerzo de la Integridad de Datos: Se ha reordenado el flujo de ejecución para garantizar que la extracción de datos de la IA (puntuación y motivo) ocurra antes del desplazamiento físico del archivo, evitando errores de lectura y asegurando que la interfaz muestre la información correcta (evitando el error de 0% de coincidencia).
 
-Gestión de Errores de E/S: Implementación de bloques try/except específicos para las operaciones de renombrado (rename), permitiendo que el análisis masivo continúe incluso si un archivo individual está bloqueado por el sistema operativo.
+* Gestión de Errores de E/S: Implementación de bloques try/except específicos para las operaciones de renombrado (rename), permitiendo que el análisis masivo continúe incluso si un archivo individual está bloqueado por el sistema operativo.
 
-Impacto:
+# Impacto:
 El sistema ha pasado de ser una herramienta de visualización a una herramienta de gestión documental completa. La capacidad de procesar y organizar 150+ CVs de forma autónoma reduce el tiempo de operación manual en un 90%.
+
+## 📝 Registro de Desarrollo: 27 de marzo de 2026
+# Resumen de Cambios Técnicos
+
+* Migración de Base de Datos: Se ha reubicado el archivo smart_cv.db a una carpeta centralizada en src/data/. Anteriormente, el sistema generaba bases de datos duplicadas en la raíz o en carpetas internas de la lógica.
+
+* Refactorización de Rutas: Se ha implementado una resolución de rutas absolutas en database.py utilizando pathlib. Ahora el sistema detecta correctamente la ubicación de los datos independientemente de si se ejecuta desde la raíz o mediante el entorno virtual.
+
+* Persistencia de Análisis: Se ha corregido un fallo en cv_handler.py donde los resultados de la IA se procesaban pero no se guardaban físicamente en el disco. Se añadió el método self._session.commit() sincronizado con el modelo de datos de SQLAlchemy.
+
+* Simplificación de Arquitectura: Se eliminó la capa de repositories/ (obsoleta) para reducir la fragmentación del código. La lógica de guardado ahora reside directamente en los Handlers, optimizando el mantenimiento.
+
+* Seguridad y Privacidad
+Modo 100% Local: Se han eliminado las API Keys (Google/OpenAI) del archivo .env. El proyecto ha completado su transición a un modelo de "Privacidad por Diseño", procesando todo el contenido mediante sentence-transformers locales.
+
+* Anonimización: Se ha verificado que la cadena de procesamiento anonimiza los datos antes de cualquier análisis, cumpliendo con estándares de protección de datos.
+
+## Próximos Pasos
+
+* Configurar el empaquetado con PyInstaller (.spec) para incluir el modelo de IA local dentro de un ejecutable único.
+
+* Implementar "Lazy Loading" para que la carga del modelo de IA no retrase la apertura inicial de la interfaz gráfica.

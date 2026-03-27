@@ -1,35 +1,66 @@
-# 🤖 EGO: SENIOR AI SOFTWARE ENGINEER (SDD EDITION)
+# 📝 DEVELOPMENT LOG - Smart CV Filter
 
-Eres un Ingeniero de Software Senior experto en Spec-Driven Development (SDD). Tu misión es desarrollar software robusto, testeable y documentado usando el ecosistema OpenSpec + LIDR ai-specs.
+## 🎯 Estado del Proyecto
+**Fase actual:** Finalización de Módulo 4 e Implementación de IA 100% Local.
 
-## 📜 REGLAS DE ORO
-1. **Nunca escribas código directamente** sin una especificación aprobada en `openspec/changes/`.
-2. **Consulta siempre los estándares** en `ai-specs/specs/base-standards.mdc` antes de proponer cualquier solución.
-3. **Baby Steps:** Divide las tareas grandes en cambios pequeños y verificables.
-4. **TDD Obligatorio:** Todo código nuevo debe incluir sus tests correspondientes.
+---
 
-## 🛠️ TOOLSET DE COMANDOS
+## 🛠️ Especificaciones Técnicas
+- **Soporte multiformato**: Extracción de texto desde `.pdf`, `.docx`, `.doc`, `.txt`, `.rtf`. Prioridad a `pdfplumber` para mantener el flujo de lectura en diseños de 2 columnas.
+- **Privacidad y Anonimización (GDPR)**: Anonimización local obligatoria de Nombres, Emails y Teléfonos mediante `spaCy` antes de cualquier procesamiento externo o local.
+- **Evaluación Semántica (Local LLM)**: Motor basado en razonamiento semántico y similitud de *embeddings* (no keywords exactas) para entender equivalencias profesionales.
+- **Clasificación y Enrutamiento**: El sistema realiza un movimiento físico de los archivos analizados a los directorios de salida correspondientes.
 
-### Capa 1: Enriquecimiento y Pensamiento (LIDR Protocol)
-- `/enrich-us [IDEA]`: Usa el prompt en `.commands/enrich-us` para analizar requisitos, casos de borde y seguridad.
-- `/plan-backend` o `/plan-frontend`: Genera un plan detallado siguiendo los archivos en `ai-specs/.agents/`.
+---
 
-### Capa 2: Estructura y Ejecución (OpenSpec Protocol)
-- `/opsx:propose "[TITULO]"`: Crea una nueva propuesta en `openspec/changes/NNN-titulo/`.
-- `/opsx:apply`: Transforma la propuesta aprobada en código real en el sistema de archivos.
-- `/opsx:verify`: Ejecuta los tests para validar que la implementación cumple la spec.
+## 📈 Registro de Cambios (Changelog)
 
-## 📂 ESTRUCTURA DEL PROYECTO
-- `openspec/`: Carpeta para la metodología de cambios.
-- `ai-specs/`: Carpeta con los estándares de ingeniería y prompts maestros.
-- `.clinerules`: Este archivo (tu manual de instrucciones).
+### [2026-03-20] - Fase de Cimientos
+- Documento `DEVELOPMENT_LOG.md` inicializado.
+- **Módulo 1**: `UniversalExtractor` completado y validado.
+- **Módulo 2**: `LocalAnonymizer` completado e integrado.
+- **Fase de Orquestación**: Desarrollo de `main.py` inicial.
+- **Módulo 3**: Evaluación Semántica (LLM) añadido e integrado.
 
-## 🚀 FLUJO DE TRABAJO
-1. El usuario da una idea.
-2. Tú usas `/enrich-us` para pulirla.
-3. Tú ejecutas `/opsx:propose` para crear el diseño técnico.
-4. Una vez aprobado, ejecutas `/opsx:apply` para programar.
+### [2026-03-23] - Mejoras y GUI (v0.5 - v0.6)
+- **Mejora Módulo 3**: Implementación de rúbrica de evaluación más precisa.
+- **Utilidad**: Script `reset_demo.py` para limpieza automática de DB y carpetas de salida.
+- **Módulo 4 (v0.6)**: Implementación de interfaz con `customtkinter`.
+  - Soporte para selección de carpetas y barra de progreso.
+  - Logging en tiempo real e integración con backend.
+  - Soporte para modo oscuro/claro.
 
-# Memory Management Protocol
-1. **Global Architecture (SDD):** If you make structural changes, modify the core architecture, or update the roadmap, you MUST update the static markdown files in `ai-specs/` and `DEVELOPMENT_LOG.md`.
-2. **Session Context (Engram):** For daily task progress, debugging context, or minor technical decisions, use the `mem_save` MCP tool to persist the context. Always invoke `mem_search` at the beginning of a new session to recall previous workflows.
+### [2026-03-26] - Hito: IA 100% Local (Privacy Update)
+- **Problema**: Errores 429 de cuota en Google Gemini y latencias de red.
+- **Solución**: Desconexión total de APIs externas. Implementación del modelo `paraphrase-multilingual-MiniLM-L12-v2`.
+- **Optimizaciones**: 
+  - Carga única en RAM (Singleton) del modelo de IA.
+  - Procesamiento en milisegundos al eliminar llamadas HTTP.
+  - Implementación de `_get_local_reasoning` para traducir métricas matemáticas a lenguaje humano.
+
+### [2026-03-27] - Hito: Clasificación Física y Persistencia
+- **Clasificación Automática**: Integración de lógica de movimiento de archivos en el `analysis_worker`.
+- **Estructura de Salida**: Archivos movidos desde `inputs/` a `src/backend/output/RECLUTADOS/` o `DESCARTADOS/`.
+- **Integridad de Datos**: Reordenado el flujo para extraer datos de la IA antes del desplazamiento del archivo, evitando errores de lectura.
+- **Gestión de Errores**: Implementación de bloques `try/except` para operaciones de E/S (archivos bloqueados).
+
+### [2026-03-27] - Refactorización de Arquitectura
+- **Migración de DB**: Reubicación de `smart_cv.db` a `src/data/` (centralizado).
+- **Rutas Absolutas**: Implementación de resolución de rutas mediante `pathlib` en `database.py`.
+- **Corrección de Persistencia**: Añadido `self._session.commit()` en `cv_handler.py` para asegurar el guardado físico de resultados.
+- **Simplificación**: Eliminación de la capa obsoleta de `repositories/` para reducir fragmentación.
+- **Seguridad**: Eliminación definitiva de API Keys del archivo `.env`.
+
+---
+
+## 🏗️ Detalles de Implementación de GUI
+- **Framework**: `customtkinter` para diseño moderno.
+- **Arquitectura**: Separación estricta entre Frontend (hilo principal) y Backend (Worker Threads).
+- **Funcionalidades**: Selector de carpetas, logging detallado, manejo de excepciones y diseño responsivo.
+
+---
+
+## 🚀 Próximos Pasos
+1. **Empaquetado**: Configurar `SmartCVFilter.spec` con PyInstaller para incluir modelos locales de IA y spaCy.
+2. **Optimización de Carga**: Implementar "Lazy Loading" para evitar retrasos en la apertura inicial de la interfaz mientras se carga el modelo de IA.
+3. **Refinamiento UI**: Añadir más opciones de configuración y exportación de resultados consolidados.

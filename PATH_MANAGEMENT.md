@@ -1,49 +1,37 @@
-# Path Management in Smart CV Filter
+# 📂 PATH MANAGEMENT - Smart CV Filter
 
-## Overview
+## 🌍 Visión General
+Para garantizar la estabilidad del sistema tanto en desarrollo como en el ejecutable final (`.exe`), se ha implementado un sistema de rutas relativas dinámicas basadas en la ubicación del proceso.
 
-In version X.X, significant improvements were made to the path management system to ensure better stability, persistence, and predictability of file locations across different execution environments.
+## 📍 Ubicación de Componentes Clave
 
-## Key Changes
+### 🗄️ Base de Datos (`smart_cv.db`)
+- **Ruta**: `src/data/smart_cv.db`
+- **Persistencia**: La base de datos se mantiene fija en esta ubicación para asegurar que los registros de candidatos no se pierdan entre sesiones.
+- **Inicialización**: El sistema verifica la existencia de la carpeta `src/data/` y la crea automáticamente si no existe.
 
-### Database Path
-- Previously: Database was created in a temporary or relative location
-- Now: Database is created in a `data` directory next to the executable
-- Benefits:
-  - Consistent database location
-  - Persistence across application restarts
-  - Works with PyInstaller bundled applications
+### 📁 Directorios de Salida (Output)
+El sistema clasifica físicamente los archivos tras el análisis:
+- **Reclutados**: `src/backend/output/RECLUTADOS/`
+- **Descartados**: `src/backend/output/DESCARTADOS/`
 
-### Output Directories
-- Previously: Output directories were relative to the source code location
-- Now: Output directories are created next to the executable
-- Directories:
-  - `output/RECLUTADOS`: Recruited CVs
-  - `output/DISCARDED`: Discarded CVs
+### 📜 Registros (Logs)
+- **Ruta**: `/logs/smart_cv_filter.log` (en la raíz del proyecto).
+- **Gestión**: Implementa rotación automática (máx. 10MB) para no saturar el almacenamiento.
 
-## Technical Implementation
+## 💻 Implementación Técnica (Lógica de Rutas)
 
-### Path Determination
+Para evitar errores en entornos "congelados" (PyInstaller), utilizamos `pathlib` para detectar la raíz del proyecto de forma robusta:
+
 ```python
-try:
-    # For PyInstaller bundled applications
-    BASE_DIR = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).resolve().parent
-except Exception:
-    BASE_DIR = Path(__file__).resolve().parent
+from pathlib import Path
+import sys
+
+# Detección de la Raíz del Proyecto
+if getattr(sys, 'frozen', False):
+    # Si es un ejecutable (.exe)
+    BASE_DIR = Path(sys.executable).parent
+else:
+    # Si es entorno de desarrollo (.py)
+    BASE_DIR = Path(__file__).resolve().parent.parent.parent 
 ```
-
-### Database Initialization
-```python
-data_dir = Path(base_path) / 'data'
-os.makedirs(data_dir, exist_ok=True)
-db_path = data_dir / 'smart_cv.db'
-```
-
-## Compatibility
-- Works with both development and bundled (PyInstaller) environments
-- Ensures table creation on first run
-- Provides consistent file locations across different execution contexts
-
-## Troubleshooting
-- If you encounter permission issues, ensure the application has write permissions in the executable directory
-- Check that the `data` and `output` directories are not blocked by system security settings

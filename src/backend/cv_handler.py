@@ -4,6 +4,7 @@ import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from src.backend.logging_config import log_function_call
 
 # Imports internos
 from src.backend.models import Candidate, Resume
@@ -25,6 +26,7 @@ class CandidateRepository:
 
     # --- MÉTODO DE PROCESAMIENTO CON IA ---
 
+    @log_function_call
     def process_cv(self, raw_text: str):
         try:
             # 1. Leer Job Description

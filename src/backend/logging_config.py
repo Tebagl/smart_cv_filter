@@ -35,9 +35,12 @@ class SmartCVFilterLogger:
         if hasattr(self, '_initialized'):
             return
 
-        # Determine log directory
+        # Detección robusta de la raíz del proyecto
         if log_dir is None:
-            project_root = Path(__file__).resolve().parent.parent.parent
+            # Obtenemos la ruta absoluta del archivo actual
+            current_path = Path(__file__).resolve()
+            # Subimos 3 niveles: backend -> src -> raiz
+            project_root = current_path.parent.parent.parent
             log_dir = project_root / 'logs'
 
         # Create log directory if it doesn't exist
