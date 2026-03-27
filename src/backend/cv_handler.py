@@ -27,27 +27,40 @@ class CandidateRepository:
 
     def process_cv(self, raw_text: str):
         try:
-            # 1. Intentar leer la descripción del puesto (Job Description)
-            # Ajusta la ruta si tu archivo está en otro sitio
+            # 1. Leer Job Description
             jd_path = "src/backend/job_description.txt" 
             try:
                 with open(jd_path, 'r', encoding='utf-8') as f:
                     job_desc = f.read()
             except FileNotFoundError:
-                job_desc = "Perfil técnico general" # Fallback si no hay archivo
-                logger.warning("No se encontró job_description.txt, usando perfil general.")
+                job_desc = "Perfil técnico general"
+                logger.warning("No se encontró job_description.txt")
 
-            # 2. Procesamiento que ya funcionaba
+            # 2. Procesamiento
             clean_text = self.anonymizer.anonymize(raw_text)
-            vector = self.embeddings_engine.get_embeddings(clean_text)
             
-           # 3. 🧠 LLAMADA AL ANALIZADOR
+            # 3. 🧠 LLAMADA AL ANALIZADOR
             decision = self.analyzer.analyze(raw_text, job_desc) 
             
-            # 4. TRADUCCIÓN DE LLAVES (Aquí estaba el fallo)
-            # El analyzer usa "apto" y "motivo", la GUI espera "decision" y "reason"
+            # 4. TRADUCCIÓN DE LLAVES PARA LA GUI
             final_status = decision.get('apto') or "ANALIZADO"
             final_reason = decision.get('motivo') or "Sin detalles disponibles."
+
+            # --- SECCIÓN DE GUARDADO SINCRONIZADA CON MODELS.PY ---
+            # Generamos un email único para evitar errores de duplicidad (unique=True)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            unique_email = f"candidato_{timestamp}@local.com"
+
+            nuevo_registro = Candidate(
+                firstName="Candidato", 
+                lastName=f"Procesado_{timestamp}",
+                email=unique_email,
+                phone="000000000",
+                address="Procesado localmente"
+            )
+            
+            self._session.add(nuevo_registro)
+            self._session.commit()
 
             return {
                 "status": "success",
@@ -57,6 +70,6 @@ class CandidateRepository:
             }
        
         except Exception as e:
-            self._session.rollback()
+            self._session.rollback() # Evita que la DB se bloquee si hay error
             logger.error(f"Error en el motor de IA: {e}")
             return {"status": "error", "reason": str(e)}

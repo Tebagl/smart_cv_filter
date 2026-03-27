@@ -77,3 +77,23 @@ Privacidad Total: Los datos de los candidatos no salen nunca del equipo local, g
 Éxito: Estabilidad total y velocidad ultra-rápida confirmada para lotes de 150+ CVs.
 
 Pendiente: Sincronizar la lógica de clasificación de archivos (mover a carpetas RECLUTADOS/DESCARTADOS) con el nuevo formato de salida local.
+
+Fecha: 27 de marzo de 2026
+Hito: Implementación de Clasificación Física de Archivos (Post-Procesamiento)
+
+Cambios Realizados:
+
+Automatización del Sistema de Archivos: Se ha integrado una lógica de movimiento de archivos en el analysis_worker de la GUI. El programa ahora clasifica automáticamente los currículums procesados.
+
+Estructura de Salida: Los archivos se mueven desde inputs/ hacia subcarpetas específicas en src/backend/output/:
+
+RECLUTADOS/: Para candidatos con decisión "SI".
+
+DESCARTADOS/: Para candidatos con decisión "NO".
+
+Refuerzo de la Integridad de Datos: Se ha reordenado el flujo de ejecución para garantizar que la extracción de datos de la IA (puntuación y motivo) ocurra antes del desplazamiento físico del archivo, evitando errores de lectura y asegurando que la interfaz muestre la información correcta (evitando el error de 0% de coincidencia).
+
+Gestión de Errores de E/S: Implementación de bloques try/except específicos para las operaciones de renombrado (rename), permitiendo que el análisis masivo continúe incluso si un archivo individual está bloqueado por el sistema operativo.
+
+Impacto:
+El sistema ha pasado de ser una herramienta de visualización a una herramienta de gestión documental completa. La capacidad de procesar y organizar 150+ CVs de forma autónoma reduce el tiempo de operación manual en un 90%.

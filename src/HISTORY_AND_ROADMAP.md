@@ -115,3 +115,20 @@ Actualmente entramos en la etapa de Integración y Reglas de Negocio Inteligente
 * **Exportación de Resultados**:
 
 * Generar reportes automáticos en formato CSV o Excel con el ranking de los 150+ CVs procesados para facilitar la toma de decisiones.
+
+## Versión Actual: v1.2.0 - "The Organizer Update"
+# Novedades:
+
+* **Clasificación Automática: ¡Adiós al ordenamiento manual!**  Ahora el filtro mueve los archivos analizados a sus carpetas correspondientes en tiempo real.
+
+* Interfaz Sincronizada: Mejora en la comunicación entre el hilo de análisis y la GUI para mostrar estados precisos (✅ RECLUTADO / ❌ DESCARTADO) junto a sus respectivos motivos técnicos.
+
+* Robustez en Lotes: Optimización del motor para manejar grandes volúmenes de archivos (150+ CVs) sin interrupciones por errores de acceso a disco.
+
+* **Próximos Pasos:**
+
+* Limpieza de Directorios: Añadir una función para limpiar las carpetas de salida desde la interfaz (botón "Reset Output").
+
+* Resumen Final: Generar un reporte consolidado al finalizar el análisis de un lote grande.
+
+* Pre-visualización: Permitir abrir el archivo .txt directamente desde el log de la GUI haciendo doble clic.

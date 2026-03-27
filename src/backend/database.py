@@ -42,28 +42,33 @@ class DatabaseManager:
         # Prevent re-initialization if already configured
         if self._engine is not None:
             return
-
+        
         # Determine database URL
         if db_url is None:
-            # Use executable directory for database
-            try:
-                # For PyInstaller bundled applications
-                base_path = sys.executable if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
-            except Exception:
-                base_path = os.path.dirname(os.path.abspath(__file__))
-
-            # Create data directory if it doesn't exist
-            data_dir = Path(base_path) / 'data'
-            os.makedirs(data_dir, exist_ok=True)
+            # Usamos resolve() para obtener la ruta real completa
+            current_file = Path(__file__).resolve()
             
-            # Set database path
+            # Subimos hasta la carpeta 'src' de forma segura
+            # Si el archivo está en /home/usuario/proyectos/smart_cv_filter/src/backend/database.py
+            # backend_dir = /home/usuario/proyectos/smart_cv_filter/src/backend
+            # src_dir = /home/usuario/proyectos/smart_cv_filter/src
+            src_dir = current_file.parent.parent
+            
+            data_dir = src_dir / 'data'
+            
+            # ¡CRÍTICO! Forzamos la creación y verificamos la ruta
+            data_dir.mkdir(parents=True, exist_ok=True)
             db_path = data_dir / 'smart_cv.db'
+            
+            
             db_url = f'sqlite:///{db_path}'
             
-            # Ensure the database file is created
+            # Mensaje de confirmación en consola
             if not db_path.exists():
                 db_path.touch()
-                print(f"[INFO] Created new database file: {db_path}")
+                print(f"[INFO] Nueva base de datos creada en: {db_path}")
+            else:
+                print(f"[INFO] Usando base de datos existente en: {db_path}")
 
         # Create engine with specific configuration
         self._engine = create_engine(
