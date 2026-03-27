@@ -150,7 +150,7 @@ class SmartCVFilterApp(ctk.CTk):
         analysis_thread.start()
 
     def analysis_worker(self):
-        """Worker que lee archivos REALES de la carpeta inputs"""
+        """Worker que analiza y MUEVE los archivos manteniendo el formato actual"""
         try:
             folder_path = self.input_folder.get()
             self.log_queue.put(f"📂 Escaneando carpeta: {folder_path}...")
@@ -159,33 +159,53 @@ class SmartCVFilterApp(ctk.CTk):
             files = list(Path(folder_path).glob("*.txt"))
             
             if not files:
-                self.log_queue.put("⚠️ No se encontraron archivos .txt en la carpeta.")
+                self.log_queue.put("⚠️ No se encontraron archivos .txt.")
                 self.progress_queue.put(0)
                 return
+
+            # --- CONFIGURAR CARPETAS DE SALIDA ---
+            output_dir = Path(base_path) / 'src' / 'backend' / 'output'
+            reclutados_dir = output_dir / 'RECLUTADOS'
+            descartados_dir = output_dir / 'DESCARTADOS'
+            reclutados_dir.mkdir(parents=True, exist_ok=True)
+            descartados_dir.mkdir(parents=True, exist_ok=True)
 
             self.log_queue.put(f"📑 Encontrados {len(files)} archivos. Iniciando...")
 
             for i, file_path in enumerate(files):
                 self.log_queue.put(f"🔍 Procesando: {file_path.name}")
                 
-                # Leer el contenido del archivo real
+                # Leer el contenido
                 with open(file_path, 'r', encoding='utf-8') as f:
                     contenido = f.read()
 
-                # 🚀 PASARLO AL MOTOR SEMÁNTICO (Llama a cv_handler.py)
+                # 🚀 ANALIZAR (Obtenemos los datos ANTES de mover)
                 resultado = self.repo.process_cv(contenido)
                 
-                # --- NUEVA LÓGICA DE VISUALIZACIÓN ---
                 if resultado.get("status") == "success":
                     estado = resultado.get('decision', 'ANALIZADO')
                     motivo = resultado.get('reason', 'Sin detalles')
                     
                     self.log_queue.put(f"   📢 ESTADO: {estado}")
                     self.log_queue.put(f"   📝 MOTIVO: {motivo}")
+
+                    # --- LÓGICA DE MOVIMIENTO ---
+                    # Decidimos destino basándonos en tu variable 'estado'
+                    if estado == "SI":
+                        destino = reclutados_dir / file_path.name
+                    else:
+                        destino = descartados_dir / file_path.name
+
+                    # Movemos el archivo físico
+                    try:
+                        file_path.rename(destino)
+                        self.log_queue.put(f"   📂 Archivo clasificado en: {destino.parent.name}")
+                    except Exception as move_error:
+                        self.log_queue.put(f"   ⚠️ Error al mover archivo: {move_error}")
+
                     self.log_queue.put("-" * 45)
                 else:
                     self.log_queue.put(f"❌ Error en {file_path.name}: {resultado.get('reason')}")
-                # -------------------------------------
                 
                 # Actualizar progreso
                 progress = (i + 1) / len(files)
@@ -196,7 +216,6 @@ class SmartCVFilterApp(ctk.CTk):
         except Exception as e:
             self.log_queue.put(f"❌ Error crítico: {str(e)}")
             self.progress_queue.put(0)
-
 
     def check_queues(self):
         """Revisar colas de logs y progreso de forma segura"""
