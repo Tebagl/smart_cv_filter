@@ -27,22 +27,25 @@ class CandidateRepository:
     # --- MÉTODO DE PROCESAMIENTO CON IA ---
 
     @log_function_call
-    def process_cv(self, raw_text: str):
+    def process_cv(self, raw_text: str, user_job_desc: str = None): # <-- Fíjate en el segundo parámetro
         try:
-            # 1. Leer Job Description
-            jd_path = "src/backend/job_description.txt" 
-            try:
-                with open(jd_path, 'r', encoding='utf-8') as f:
-                    job_desc = f.read()
-            except FileNotFoundError:
-                job_desc = "Perfil técnico general"
-                logger.warning("No se encontró job_description.txt")
+            # 1. Decidir qué Job Description usar
+            if user_job_desc and user_job_desc.strip():
+                job_desc = user_job_desc
+            else:
+                # Si no hay texto de la GUI, buscamos el archivo físico
+                try:
+                    with open(self.jd_path, 'r', encoding='utf-8') as f:
+                        job_desc = f.read()
+                except FileNotFoundError:
+                    job_desc = "Perfil técnico general"
+                    logger.warning(f"No se encontró archivo en {self.jd_path}")
 
-            # 2. Procesamiento
+            # 2. Procesamiento (Anonimizar el CV)
             clean_text = self.anonymizer.anonymize(raw_text)
             
-            # 3. 🧠 LLAMADA AL ANALIZADOR
-            decision = self.analyzer.analyze(raw_text, job_desc) 
+            # 3. 🧠 LLAMADA AL ANALIZADOR (Pasando la descripción elegida)
+            decision = self.analyzer.analyze(raw_text, job_desc)
             
             # 4. TRADUCCIÓN DE LLAVES PARA LA GUI
             final_status = decision.get('apto') or "ANALIZADO"

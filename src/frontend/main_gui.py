@@ -98,6 +98,14 @@ class SmartCVFilterApp(ctk.CTk):
         )
         folder_button.pack(side="right", padx=5)
 
+        # --- SECCIÓN JOB DESCRIPTION ---
+        self.jd_label = ctk.CTkLabel(self, text="Descripción del Puesto (Job Description):", font=("Arial", 12, "bold"))
+        self.jd_label.pack(pady=(10, 0), padx=20, anchor="w")
+
+        self.jd_textbox = ctk.CTkTextbox(self, height=150, width=560)
+        self.jd_textbox.pack(pady=(5, 10), padx=20)
+        self.jd_textbox.insert("0.0", "Pegue aquí los requisitos de la vacante...")
+
         # Área de botones de control
         control_frame = ctk.CTkFrame(main_frame)
         control_frame.pack(padx=10, pady=10, fill="x")
@@ -139,18 +147,29 @@ class SmartCVFilterApp(ctk.CTk):
 
     def run_analysis(self):
         """Ejecutar análisis de CVs en un thread separado"""
-        # Limpiar logs anteriores
+        # 1. Limpiar logs anteriores
         self.log_text.delete("1.0", "end")
         
-        # Configurar entorno para análisis
-        os.environ['CV_INPUT_DIR'] = self.input_folder.get()
+        # 2. Capturar el texto del usuario ANTES de lanzar el hilo
+        user_description = self.jd_textbox.get("0.0", "end").strip()
         
-        # Iniciar análisis en thread separado
-        analysis_thread = threading.Thread(target=self.analysis_worker, daemon=True)
-        analysis_thread.start()
+        # Si el usuario no escribió nada o dejó el texto por defecto, enviamos None
+        if not user_description or "Pegue aquí" in user_description:
+            user_description = None
+            self.log_text.insert("end", "ℹ️ Usando descripción por defecto (job_description.txt)\n")
+        else:
+            self.log_text.insert("end", "✅ Usando descripción personalizada del cuadro de texto.\n")
 
-    def analysis_worker(self):
-        """Worker que analiza y MUEVE los archivos manteniendo el formato actual"""
+        # 3. Iniciar análisis pasando la descripción como argumento al worker
+        analysis_thread = threading.Thread(
+            target=self.analysis_worker, 
+            args=(user_description,), # <-- Pasamos el texto aquí
+            daemon=True
+        )
+        analysis_thread.start()
+        
+    def analysis_worker(self, user_job_desc):
+        """Worker que analiza y MUEVE los archivos con descripción dinámica"""
         try:
             folder_path = self.input_folder.get()
             self.log_queue.put(f"📂 Escaneando carpeta: {folder_path}...")
@@ -164,9 +183,11 @@ class SmartCVFilterApp(ctk.CTk):
                 return
 
             # --- CONFIGURAR CARPETAS DE SALIDA ---
+            # Usamos base_path definido globalmente en tu archivo
             output_dir = Path(base_path) / 'src' / 'backend' / 'output'
             reclutados_dir = output_dir / 'RECLUTADOS'
             descartados_dir = output_dir / 'DESCARTADOS'
+            
             reclutados_dir.mkdir(parents=True, exist_ok=True)
             descartados_dir.mkdir(parents=True, exist_ok=True)
 
@@ -175,12 +196,17 @@ class SmartCVFilterApp(ctk.CTk):
             for i, file_path in enumerate(files):
                 self.log_queue.put(f"🔍 Procesando: {file_path.name}")
                 
-                # Leer el contenido
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    contenido = f.read()
+                # Leer el contenido del CV
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        contenido = f.read()
+                except Exception as read_error:
+                    self.log_queue.put(f"❌ Error al leer {file_path.name}: {read_error}")
+                    continue
 
-                # 🚀 ANALIZAR (Obtenemos los datos ANTES de mover)
-                resultado = self.repo.process_cv(contenido)
+                # 🚀 ANALIZAR (Pasamos el contenido y la descripción personalizada)
+                # IMPORTANTE: Tu cv_handler.py debe aceptar (contenido, user_job_desc)
+                resultado = self.repo.process_cv(contenido, user_job_desc)
                 
                 if resultado.get("status") == "success":
                     estado = resultado.get('decision', 'ANALIZADO')
@@ -190,16 +216,17 @@ class SmartCVFilterApp(ctk.CTk):
                     self.log_queue.put(f"   📝 MOTIVO: {motivo}")
 
                     # --- LÓGICA DE MOVIMIENTO ---
-                    # Decidimos destino basándonos en tu variable 'estado'
+                    # Clasificamos según la decisión de la IA
                     if estado == "SI":
                         destino = reclutados_dir / file_path.name
                     else:
                         destino = descartados_dir / file_path.name
 
-                    # Movemos el archivo físico
+                    # Movemos el archivo físico (operación atómica)
                     try:
-                        file_path.rename(destino)
-                        self.log_queue.put(f"   📂 Archivo clasificado en: {destino.parent.name}")
+                        # Usamos replace en lugar de rename para evitar errores si el archivo ya existe
+                        file_path.replace(destino)
+                        self.log_queue.put(f"   📂 Clasificado en: {destino.parent.name}")
                     except Exception as move_error:
                         self.log_queue.put(f"   ⚠️ Error al mover archivo: {move_error}")
 
@@ -207,15 +234,15 @@ class SmartCVFilterApp(ctk.CTk):
                 else:
                     self.log_queue.put(f"❌ Error en {file_path.name}: {resultado.get('reason')}")
                 
-                # Actualizar progreso
+                # Actualizar progreso en la GUI
                 progress = (i + 1) / len(files)
                 self.progress_queue.put(progress)
 
-            self.log_queue.put("\n🎊 ¡Procesamiento completo de todos los archivos!")
+            self.log_queue.put("\n🎊 ¡Procesamiento masivo completado con éxito!")
 
         except Exception as e:
-            self.log_queue.put(f"❌ Error crítico: {str(e)}")
-            self.progress_queue.put(0)
+            self.log_queue.put(f"❌ Error crítico en el worker: {str(e)}")
+            self.progress_queue.put(0)          
 
     def check_queues(self):
         """Revisar colas de logs y progreso de forma segura"""
