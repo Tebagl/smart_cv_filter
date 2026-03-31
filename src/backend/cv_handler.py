@@ -2,13 +2,11 @@ import os
 from typing import List, Optional
 from datetime import datetime
 import logging
-from sqlalchemy.orm import Session
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from src.backend.logging_config import log_function_call
 
 # Imports internos
-from src.backend.models import Candidate, Resume
 from src.backend.anonymizer import Anonymizer
 from src.backend.embeddings_engine import LocalEmbeddings
 from src.backend.analyzer import CVAnalyzer
