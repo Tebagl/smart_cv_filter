@@ -1,80 +1,92 @@
 import os
-from typing import List, Optional
-from datetime import datetime
+import shutil
 import logging
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from src.backend.logging_config import log_function_call
-
-# Imports internos
-from src.backend.anonymizer import Anonymizer
-from src.backend.embeddings_engine import LocalEmbeddings
-from src.backend.analyzer import CVAnalyzer
+import re
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-class CandidateRepository:
-    def __init__(self, session: Session):
-        self._session = session
-        self.anonymizer = Anonymizer()
-        self.embeddings_engine = LocalEmbeddings()
-        self.analyzer = CVAnalyzer() # <--- Lo inicializamos aquí una sola vez
+class CVHandler:
+    def __init__(self, analyzer):
+        """
+        Manejador de CVs para sistema de carpetas e IA Embebida.
+        """
+        self.analyzer = analyzer
+        # Definimos la ruta base de salida relativa a este archivo
+        self.base_output = os.path.join(os.path.dirname(__file__), "output")
+        self._ensure_folders()
 
-    def get_candidate_by_email(self, email: str) -> Optional[Candidate]:
-        return self._session.query(Candidate).filter_by(email=email).first()
+    def _ensure_folders(self):
+        """Crea la estructura de carpetas física si no existe"""
+        # IMPORTANTE: Estos nombres deben coincidir con los que busca la GUI
+        folders = ["RECLUTADOS", "DUDAS", "DESCARTADOS"]
+        for f in folders:
+            path = os.path.join(self.base_output, f)
+            os.makedirs(path, exist_ok=True)
+            logger.info(f"📁 Carpeta verificada: {path}")
 
-    # --- MÉTODO DE PROCESAMIENTO CON IA ---
-
-    @log_function_call
-    def process_cv(self, raw_text: str, user_job_desc: str = None, file_path: str = ""):
+    def process_cv(self, file_path: str, user_job_desc: str = None):
+        """
+        Analiza el CV y lo mueve físicamente según el score de la IA.
+        """
         try:
-            # 1. Analizar con IA
+            # 1. Leer el contenido del archivo .txt
+            with open(file_path, 'r', encoding='utf-8') as f:
+                raw_text = f.read()
+
+            # 2. Analizar con la IA Embebida
             jd = user_job_desc if user_job_desc else "Perfil técnico general"
             decision = self.analyzer.analyze(raw_text, jd)
             
-            # 2. Extraer y LIMPIAR los datos reales
-            raw_score = decision.get('score', 0)
-            try:
-                # Limpiamos el score por si viene con % o espacios
-                f_score = int(str(raw_score).replace('%', '').strip())
-            except:
-                f_score = 0
+            # DEBUG: Esto aparecerá en tu terminal para ver qué responde la IA realmente
+            print(f"\n--- DEBUG IA LOCAL ---")
+            print(f"Archivo: {os.path.basename(file_path)}")
+            print(f"Tipo respuesta: {type(decision)}")
+            print(f"Contenido: {decision}")
+            print(f"----------------------\n")
 
-            f_status = decision.get('apto', 'NO')
-            f_motivo = decision.get('motivo', 'Sin detalles')
-
-            # 3. Asegurar ruta absoluta para el enlace
-            ruta_para_db = os.path.abspath(file_path)
-
-            # 4. Guardar en la base de datos (USANDO LAS VARIABLES)
-            nuevo_registro = Candidate(
-                firstName="Candidato",
-                lastName="Ref_" + datetime.now().strftime('%H%M%S'),
-                email=f"anon_{os.urandom(3).hex()}@local.com",
-                score=f_score,       # ✅ Aquí se usa f_score
-                address=ruta_para_db # ✅ Aquí se usa la ruta
-            )
+            # 3. Extraer puntuación (Score) de forma robusta
+            import re
+            f_score = 0
+            # Convertimos la respuesta de la IA a string y buscamos números
+            texto_ia = str(decision)
+            numeros = re.findall(r'\d+', texto_ia)
             
-            self._session.add(nuevo_registro)
-            self._session.commit()
+            if numeros:
+                # Buscamos un número que tenga sentido como score (0-100)
+                for n in numeros:
+                    val = int(n)
+                    if 0 <= val <= 100:
+                        f_score = val
+                        break
+
+            # 4. Lógica de clasificación por carpetas
+            nombre_archivo = os.path.basename(file_path)
+            
+            if f_score >= 50:
+                destino = "RECLUTADOS"
+            elif 30 <= f_score < 50:
+                destino = "DUDAS"
+            else:
+                destino = "DESCARTADOS"
+
+            # 5. Mover el archivo físicamente (shutil.move limpia la entrada)
+            ruta_final = os.path.join(self.base_output, destino, nombre_archivo)
+            
+            # Verificamos si el archivo existe antes de mover (evita errores)
+            if os.path.exists(file_path):
+                shutil.move(file_path, ruta_final)
+                logger.info(f"✅ {nombre_archivo} movido a {destino} (Score: {f_score}%)")
+            else:
+                logger.warning(f"⚠️ El archivo ya no existe en la ruta: {file_path}")
 
             return {
                 "status": "success",
-                "decision": f_status,
-                "reason": f_motivo,
-                "score": f_score
+                "decision": destino,
+                "score": f_score,
+                "dest_path": ruta_final
             }
+
         except Exception as e:
-            self._session.rollback()
-            logger.error(f"❌ Error guardando candidato: {e}")
+            logger.error(f"❌ Error procesando {file_path}: {str(e)}")
             return {"status": "error", "reason": str(e)}
-    def get_top_candidates(self, limit=15):
-        """Consulta los mejores candidatos ordenados por score"""
-        try:
-            return self._session.query(Candidate)\
-                .order_by(Candidate.score.desc())\
-                .limit(limit)\
-                .all()
-        except Exception as e:
-            logger.error(f"Error SQL: {e}")
-            return []
