@@ -73,77 +73,159 @@ class SmartCVFilterApp(ctk.CTk):
         # Configurar actualización de logs y progreso
         self.after(100, self.check_queues)
 
+    def update_top_candidates(self):
+        """Limpia y rellena la lista de mejores candidatos desde la DB"""
+        for widget in self.candidates_list.winfo_children():
+            widget.destroy()
+
+        try:
+            limit = int(self.top_n_var.get())
+            # Consultar la DB (Ordenado por score de mayor a menor)
+            top_list = self.repo.get_top_candidates(limit=limit) 
+
+            for person in top_list:
+                # Mostramos el score guardado en la DB
+                texto_boton = f"⭐ {person.lastName} | {person.score}%"
+                
+                btn = ctk.CTkButton(
+                    self.candidates_list, 
+                    text=texto_boton,
+                    fg_color="#34495e",
+                    hover_color="#1abc9c",
+                    anchor="w",
+                    # Al clickar, usamos person.address para abrir el archivo
+                    command=lambda p=person: self.open_candidate_cv(p.address)
+                )
+                btn.pack(fill="x", pady=2, padx=5)
+        except Exception as e:
+            print(f"Error actualizando Top visual: {e}")
+
+    def open_candidate_cv(self, file_path):
+        """Intenta abrir el CV y avisa si el archivo ya no está ahí"""
+        import os, subprocess, platform
+        
+        if not file_path or not os.path.exists(file_path):
+            self.log_text.insert("end", "⚠️ El archivo original no se encuentra (¿Se quitó el pendrive o se movió?)\n")
+            # Opcional: podrías abrir la carpeta de 'RECLUTADOS' como plan B
+            return
+
+        try:
+            if platform.system() == "Windows":
+                os.startfile(file_path)
+            elif platform.system() == "Darwin":
+                subprocess.call(("open", file_path))
+            else:
+                subprocess.call(("xdg-open", file_path))
+            
+            self.log_text.insert("end", f"📂 Abriendo CV: {os.path.basename(file_path)}\n")
+        except Exception as e:
+            self.log_text.insert("end", f"❌ Error al abrir el archivo: {e}\n")
+
     def create_widgets(self):
-        # Frame principal
+        # Frame principal con un poco más de margen
         main_frame = ctk.CTkFrame(self)
         main_frame.pack(padx=20, pady=20, fill="both", expand=True)
 
-        # Selector de carpeta de CVs
-        folder_frame = ctk.CTkFrame(main_frame)
-        folder_frame.pack(padx=10, pady=10, fill="x")
+        # 1. SECTOR SUPERIOR: Configuración de la búsqueda
+        top_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        top_frame.pack(fill="x", padx=10, pady=10)
 
-        ctk.CTkLabel(folder_frame, text="Carpeta de CVs:").pack(side="left", padx=5)
+        # Selector de carpeta (Ahora más compacto)
+        folder_frame = ctk.CTkFrame(top_frame)
+        folder_frame.pack(fill="x", pady=(0, 10))
         
-        folder_entry = ctk.CTkEntry(
-            folder_frame, 
-            textvariable=self.input_folder, 
-            width=400
-        )
+        ctk.CTkLabel(folder_frame, text="Carpeta de CVs:", font=("Arial", 12, "bold")).pack(side="left", padx=10)
+        folder_entry = ctk.CTkEntry(folder_frame, textvariable=self.input_folder, width=350)
         folder_entry.pack(side="left", padx=5, expand=True, fill="x")
+        
+        ctk.CTkButton(folder_frame, text="Seleccionar", width=100, command=self.select_input_folder).pack(side="right", padx=10)
+    
+        # --- SECCIÓN JOB DESCRIPTION (Ahora arriba y prioritaria) ---
+        self.jd_label = ctk.CTkLabel(top_frame, text="📝 Requisitos de la Vacante (Job Description):", font=("Arial", 13, "bold"))
+        self.jd_label.pack(anchor="w", padx=5)
 
-        folder_button = ctk.CTkButton(
-            folder_frame, 
-            text="Seleccionar", 
-            command=self.select_input_folder
-        )
-        folder_button.pack(side="right", padx=5)
-
-        # --- SECCIÓN JOB DESCRIPTION ---
-        self.jd_label = ctk.CTkLabel(self, text="Descripción del Puesto (Job Description):", font=("Arial", 12, "bold"))
-        self.jd_label.pack(pady=(10, 0), padx=20, anchor="w")
-
-        self.jd_textbox = ctk.CTkTextbox(self, height=150, width=560)
-        self.jd_textbox.pack(pady=(5, 10), padx=20)
+        self.jd_textbox = ctk.CTkTextbox(top_frame, height=180, border_width=2) # Más alto
+        self.jd_textbox.pack(fill="x", pady=5, padx=5)
         self.jd_textbox.insert("0.0", "Pegue aquí los requisitos de la vacante...")
 
-        # Área de botones de control
-        control_frame = ctk.CTkFrame(main_frame)
-        control_frame.pack(padx=10, pady=10, fill="x")
+        # 2. SECTOR CENTRAL: Botones de Acción
+        button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        button_frame.pack(fill="x", padx=10, pady=5)
 
-        analyze_button = ctk.CTkButton(
-            control_frame, 
-            text="Ejecutar Análisis", 
+        self.btn_analyze = ctk.CTkButton(
+            button_frame, 
+            text="🚀 INICIAR ANÁLISIS DE CVS", 
+            font=("Arial", 14, "bold"),
+            height=40,
             command=self.run_analysis
         )
-        analyze_button.pack(side="left", padx=5, expand=True, fill="x")
+        self.btn_analyze.pack(side="left", expand=True, fill="x", padx=(0, 5))
 
-        reset_button = ctk.CTkButton(
-            control_frame, 
-            text="Reset Demo", 
-            command=self.reset_demo,
-            fg_color="red"
-        )
-        reset_button.pack(side="right", padx=5, expand=True, fill="x")
+        ctk.CTkButton(
+            button_frame, 
+            text="Limpiar", 
+            width=100,
+            height=40,
+            fg_color="#555555",
+            command=self.reset_demo
+        ).pack(side="right")
 
-        # Área de logging
-        self.log_text = ctk.CTkTextbox(main_frame, height=300)
-        self.log_text.pack(padx=10, pady=10, expand=True, fill="both")
+        # 3. SECTOR INFERIOR: Consola y Top Candidatos (Lado a lado)
+        bottom_container = ctk.CTkFrame(main_frame, fg_color="transparent")
+        bottom_container.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Barra de progreso
-        self.progress_bar = ctk.CTkProgressBar(main_frame)
-        self.progress_bar.pack(padx=10, pady=10, fill="x")
-        self.progress_bar.set(0)
+        # COLUMNA IZQUIERDA: Consola de logs
+        console_frame = ctk.CTkFrame(bottom_container)
+        console_frame.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        
+        ctk.CTkLabel(console_frame, text="📊 Log de Procesamiento:", font=("Arial", 11, "italic")).pack(anchor="w", padx=10)
+        self.log_text = ctk.CTkTextbox(console_frame, fg_color="#1a1a1a", text_color="#00ff00")
+        self.log_text.pack(fill="both", expand=True, padx=10, pady=5)
+        
+
+        # COLUMNA DERECHA: Top Selección
+        top_candidates_frame = ctk.CTkFrame(bottom_container, width=250)
+        top_candidates_frame.pack(side="right", fill="both", expand=False, padx=(5, 0))
+        
+        # Control del número de candidatos
+        settings_frame = ctk.CTkFrame(top_candidates_frame, fg_color="transparent")
+        settings_frame.pack(fill="x", pady=5)
+        
+        ctk.CTkLabel(settings_frame, text="🏆 Top:", font=("Arial", 12, "bold")).pack(side="left", padx=5)
+        self.top_n_var = ctk.StringVar(value="15")
+        self.top_n_entry = ctk.CTkEntry(settings_frame, textvariable=self.top_n_var, width=45)
+        self.top_n_entry.pack(side="left")
+
+        # Lista de candidatos (Scrollable)
+        self.candidates_list = ctk.CTkScrollableFrame(top_candidates_frame, label_text="Mejores Candidatos")
+        self.candidates_list.pack(fill="both", expand=True, padx=5, pady=5)
 
     def select_input_folder(self):
-        """Abrir diálogo para seleccionar carpeta de CVs"""
-        folder_selected = ctk.filedialog.askdirectory(
-            initialdir=self.input_folder.get(),
-            title="Seleccionar Carpeta de CVs"
-        )
-        
-        if folder_selected:
-            self.input_folder.set(folder_selected)
-            self.log_text.insert("end", f"Carpeta seleccionada: {folder_selected}\n")
+        """Usa plyer para un diálogo realmente nativo y moderno"""
+        try:
+            from plyer import filechooser
+            
+            # Abrir el selector de carpetas nativo del sistema
+            path = filechooser.choose_dir(
+                title="📂 Seleccionar Carpeta de Candidatos",
+                initial_path=self.input_folder.get()
+            )
+            
+            if path:
+                # Path devuelve una lista, tomamos el primer elemento
+                folder_selected = path[0]
+                from pathlib import Path
+                clean_path = str(Path(folder_selected).resolve())
+                
+                self.input_folder.set(clean_path)
+                self.log_text.insert("end", f"📂 Carpeta actualizada: {clean_path}\n")
+                self.log_text.see("end")
+        except Exception as e:
+            # Si plyer falla, usamos el de tkinter como respaldo (fallback)
+            from tkinter import filedialog
+            folder_selected = filedialog.askdirectory(parent=self)
+            if folder_selected:
+                self.input_folder.set(folder_selected)
 
     def run_analysis(self):
         """Ejecutar análisis de CVs en un thread separado"""
@@ -183,7 +265,6 @@ class SmartCVFilterApp(ctk.CTk):
                 return
 
             # --- CONFIGURAR CARPETAS DE SALIDA ---
-            # Usamos base_path definido globalmente en tu archivo
             output_dir = Path(base_path) / 'src' / 'backend' / 'output'
             reclutados_dir = output_dir / 'RECLUTADOS'
             descartados_dir = output_dir / 'DESCARTADOS'
@@ -196,7 +277,6 @@ class SmartCVFilterApp(ctk.CTk):
             for i, file_path in enumerate(files):
                 self.log_queue.put(f"🔍 Procesando: {file_path.name}")
                 
-                # Leer el contenido del CV
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
                         contenido = f.read()
@@ -204,9 +284,8 @@ class SmartCVFilterApp(ctk.CTk):
                     self.log_queue.put(f"❌ Error al leer {file_path.name}: {read_error}")
                     continue
 
-                # 🚀 ANALIZAR (Pasamos el contenido y la descripción personalizada)
-                # IMPORTANTE: Tu cv_handler.py debe aceptar (contenido, user_job_desc)
-                resultado = self.repo.process_cv(contenido, user_job_desc)
+                # 🚀 ANALIZAR
+                resultado = self.repo.process_cv(contenido, user_job_desc, file_path=str(file_path))
                 
                 if resultado.get("status") == "success":
                     estado = resultado.get('decision', 'ANALIZADO')
@@ -215,16 +294,13 @@ class SmartCVFilterApp(ctk.CTk):
                     self.log_queue.put(f"   📢 ESTADO: {estado}")
                     self.log_queue.put(f"   📝 MOTIVO: {motivo}")
 
-                    # --- LÓGICA DE MOVIMIENTO ---
-                    # Clasificamos según la decisión de la IA
+                    # LÓGICA DE MOVIMIENTO
                     if estado == "SI":
                         destino = reclutados_dir / file_path.name
                     else:
                         destino = descartados_dir / file_path.name
 
-                    # Movemos el archivo físico (operación atómica)
                     try:
-                        # Usamos replace en lugar de rename para evitar errores si el archivo ya existe
                         file_path.replace(destino)
                         self.log_queue.put(f"   📂 Clasificado en: {destino.parent.name}")
                     except Exception as move_error:
@@ -234,11 +310,13 @@ class SmartCVFilterApp(ctk.CTk):
                 else:
                     self.log_queue.put(f"❌ Error en {file_path.name}: {resultado.get('reason')}")
                 
-                # Actualizar progreso en la GUI
+                # Actualizar progreso
                 progress = (i + 1) / len(files)
                 self.progress_queue.put(progress)
 
+            # ✨ ESTO VA FUERA DEL BUCLE FOR (Al terminar todo)
             self.log_queue.put("\n🎊 ¡Procesamiento masivo completado con éxito!")
+            self.log_queue.put("COMMAND_UPDATE_TOP")
 
         except Exception as e:
             self.log_queue.put(f"❌ Error crítico en el worker: {str(e)}")
@@ -247,21 +325,26 @@ class SmartCVFilterApp(ctk.CTk):
     def check_queues(self):
         """Revisar colas de logs y progreso de forma segura"""
         try:
-            # Procesar logs
+            # Procesar logs y comandos
             while not self.log_queue.empty():
                 message = self.log_queue.get_nowait()
-                self.log_text.insert("end", message + "\n")
-                self.log_text.see("end")
+                
+                if message == "COMMAND_UPDATE_TOP":
+                    self.update_top_candidates()
+                else:
+                    self.log_text.insert("end", str(message) + "\n")
+                    self.log_text.see("end")
 
             # Procesar progreso
             while not self.progress_queue.empty():
                 value = self.progress_queue.get_nowait()
                 self.progress_bar.set(value)
 
-        except queue.Empty:
-            pass
+        except Exception as e:
+            # Capturar cualquier error silencioso para que la App no muera
+            print(f"Error en check_queues: {e}")
 
-        # Programar la próxima revisión de colas
+        # Programar la próxima revisión
         self.after(100, self.check_queues)
 
     def reset_demo(self):
@@ -269,7 +352,7 @@ class SmartCVFilterApp(ctk.CTk):
         self.log_text.delete("1.0", "end")
         self.log_text.insert("end", "Logs limpiados. Listo para nuevo análisis.\n")
         self.progress_bar.set(0)
-
+    
 
 def main():
     """Punto de entrada de la aplicación"""

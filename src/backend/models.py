@@ -11,11 +11,12 @@ class Candidate(Base):
     __tablename__ = 'candidates'
 
     id = Column(Integer, primary_key=True)
-    firstName = Column(String(100), nullable=False)
-    lastName = Column(String(100), nullable=False)
-    email = Column(String(255), nullable=False, unique=True)
-    phone = Column(String(15), nullable=True)
-    address = Column(String(100), nullable=True)
+    firstName = Column(String(100))
+    lastName = Column(String(100))
+    email = Column(String(255), unique=True)
+    phone = Column(String(15))
+    address = Column(String(100))
+    score = Column(Integer, default=0)
 
     # Relationships
     educations = relationship("Education", back_populates="candidate")
