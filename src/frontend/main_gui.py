@@ -48,9 +48,8 @@ class SmartCVFilterApp(ctk.CTk):
         # Colas de comunicación
         self.log_queue = queue.Queue()
         
-        # Variables de ruta por defecto
-        default_inputs_path = os.path.join(base_path, 'src', 'backend', 'inputs')
-        self.input_folder = ctk.StringVar(value=default_inputs_path)
+       # Variables de ruta inicializadas vacías
+        self.input_folder = ctk.StringVar(value="")
 
         # Crear Interfaz
         self.create_widgets()
@@ -175,17 +174,26 @@ class SmartCVFilterApp(ctk.CTk):
             return
 
         try:
-            # CAMBIO CLAVE: Ahora aceptamos .txt y .pdf (ignorando mayúsculas/minúsculas)
+            # 1. Obtenemos la lista de archivos
             archivos = [f for f in os.listdir(self.results_dir) 
-            if f.lower().endswith(('.txt', '.pdf', '.docx'))]
+                       if f.lower().endswith(('.txt', '.pdf', '.docx'))]
+            
+            # 2. ORDENAR: Al tener el score al principio (ej: "95_cv..."), 
+            # sort(reverse=True) pondrá los más altos arriba automáticamente.
+            archivos.sort(reverse=True)
             
             for nombre in archivos:
                 ruta_completa = os.path.join(self.results_dir, nombre)
+                
+                # Opcional: Limpiar el nombre para la interfaz (quitar el prefijo del score)
+                # si quieres que se vea más limpio, aunque dejarlo ayuda a confirmar el orden.
+                display_name = nombre 
+
                 btn = ctk.CTkButton(
                     self.candidates_list, 
-                    text=f"📄 {nombre}",
-                    fg_color="#34495e", # Un tono grisáceo elegante
-                    hover_color="#1f538d", # Azul al pasar el ratón
+                    text=f"⭐ {display_name}",
+                    fg_color="#34495e",
+                    hover_color="#1f538d",
                     anchor="w",
                     command=lambda r=ruta_completa: self.open_candidate_cv(r)
                 )
@@ -210,7 +218,22 @@ class SmartCVFilterApp(ctk.CTk):
 
     def select_input_folder(self):
         from tkinter import filedialog
-        path = filedialog.askdirectory()
+        import os
+        
+        # 1. Localizamos la ruta del Escritorio de forma dinámica
+        # Esto funciona en Windows, macOS y Linux
+        desktop_path = os.path.join(os.path.expanduser("~"), "Documents")
+        
+        # 2. Verificamos si existe (por si el SO tiene un nombre distinto)
+        if not os.path.exists(desktop_path):
+            desktop_path = os.path.expanduser("~") # Si no hay escritorio, abre su carpeta personal
+
+        # 3. Abrimos el buscador empezando en el escritorio (initialdir)
+        path = filedialog.askdirectory(
+            initialdir=desktop_path,
+            title="Selecciona la carpeta con los CVs"
+        )
+        
         if path:
             self.input_folder.set(path)
 
@@ -218,13 +241,19 @@ class SmartCVFilterApp(ctk.CTk):
         puesto = self.entry_puesto.get().strip().replace(" ", "_")
         fecha = self.entry_fecha.get().strip()
         
+        # --- VALIDACIÓN DE CARPETA Y PUESTO ---
+        folder_path = self.input_folder.get().strip()
+        if not folder_path:
+            self.log_text.insert("end", "⚠️ ERROR: Debes seleccionar una carpeta de entrada con los CVs.\n")
+            return
+       
         if not puesto:
             self.log_text.insert("end", "⚠️ Por favor, introduce el nombre del puesto.\n")
             return
 
         # Creamos la ruta dinámica
         nombre_carpeta = f"{fecha}_{puesto}"
-        ruta_proceso = os.path.join(base_path, "Procesos", nombre_carpeta)
+        ruta_proceso = os.path.join(base_path, "Procesos de selección", nombre_carpeta)
         
         # Actualizamos el handler con la nueva ruta de salida
         self.cv_handler.base_output = os.path.join(ruta_proceso, "output")

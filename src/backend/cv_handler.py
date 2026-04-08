@@ -92,20 +92,29 @@ class CVHandler:
             else:
                 reason = re.sub(r'^\d+[%]?\s*[:-]?\s*', '', texto_ia).strip()
 
-            # --- Lógica de carpetas (Se mantiene igual) ---
-            nombre_archivo = os.path.basename(file_path)
-            # Verificamos si la IA puso "SI" en el campo apto del texto (por si acaso)
+            # --- Lógica de carpetas y Renombrado por Score ---
+            nombre_original = os.path.basename(file_path)
+            
+            # Formateamos el score a 2 dígitos (ej: 05, 42, 98) para que el orden alfabético sea correcto
+            score_prefix = f"{int(f_score):02d}"
+            nuevo_nombre = f"{score_prefix}_{nombre_original}"
+
+            # Verificamos si la IA puso "SI" en el campo apto del texto
             es_apto_por_texto = '"apto": "SI"' in texto_ia.upper() or "'apto': 'SI'" in texto_ia.upper()
 
-            if f_score >= 50 or es_apto_por_texto:
+            # Definición del destino según tu nueva escala (70, 50)
+            if f_score >= 70 or es_apto_por_texto:
                 destino = "RECLUTADOS"
-            elif 30 <= f_score < 50:
+            elif 50 <= f_score < 70:
                 destino = "DUDAS"
             else:
                 destino = "DESCARTADOS"
 
-            ruta_final = os.path.join(self.base_output, destino, nombre_archivo)
+            # Ruta final con el NUEVO NOMBRE (incluye el score delante)
+            ruta_final = os.path.join(self.base_output, destino, nuevo_nombre)
+            
             if os.path.exists(file_path):
+                # Usamos move pero con la ruta que contiene el nuevo_nombre
                 shutil.move(file_path, ruta_final)
 
             return {
