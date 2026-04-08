@@ -1,1 +1,0 @@
-Especialista en Airflow, Python, SQL, Redshift, AWS.

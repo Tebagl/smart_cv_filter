@@ -1,1 +1,0 @@
-Backend Senior movido a Data, Python, Airflow, Snowflake

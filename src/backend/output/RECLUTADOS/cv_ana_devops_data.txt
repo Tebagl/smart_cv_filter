@@ -1,1 +1,0 @@
-Especialista en pipelines, Docker, K8s, Python, Redshift.

@@ -112,7 +112,7 @@ class SmartCVFilterApp(ctk.CTk):
         right_column = ctk.CTkFrame(mid_container)
         right_column.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
         
-        self.candidates_list = ctk.CTkScrollableFrame(right_column, label_text="CVs Aceptados (RECLUTADOS)")
+        self.candidates_list = ctk.CTkScrollableFrame(right_column, label_text="CVs Aceptados")
         self.candidates_list.pack(fill="both", expand=True, padx=5, pady=5)
 
         # --- SECCIÓN 3: CONSOLA DE LOGS (ABAJO) ---
@@ -150,6 +150,7 @@ class SmartCVFilterApp(ctk.CTk):
 
     # --- Lógica de la Aplicación ---
     def update_top_candidates(self):
+        # Limpiamos la lista actual
         for widget in self.candidates_list.winfo_children():
             widget.destroy()
 
@@ -157,18 +158,22 @@ class SmartCVFilterApp(ctk.CTk):
             return
 
         try:
-            archivos = [f for f in os.listdir(self.results_dir) if f.endswith('.txt')]
+            # CAMBIO CLAVE: Ahora aceptamos .txt y .pdf (ignorando mayúsculas/minúsculas)
+            archivos = [f for f in os.listdir(self.results_dir) 
+                       if f.lower().endswith(('.txt', '.pdf'))]
+            
             for nombre in archivos:
                 ruta_completa = os.path.join(self.results_dir, nombre)
                 btn = ctk.CTkButton(
                     self.candidates_list, 
                     text=f"📄 {nombre}",
-                    fg_color="#2c3e50",
-                    hover_color="#1abc9c",
+                    fg_color="#34495e", # Un tono grisáceo elegante
+                    hover_color="#1f538d", # Azul al pasar el ratón
                     anchor="w",
                     command=lambda r=ruta_completa: self.open_candidate_cv(r)
                 )
                 btn.pack(fill="x", pady=2, padx=5)
+                
         except Exception as e:
             logger.error(f"Error actualizando lista visual: {e}")
 
@@ -203,7 +208,8 @@ class SmartCVFilterApp(ctk.CTk):
     def analysis_worker(self, user_job_desc):
         try:
             folder_path = Path(self.input_folder.get())
-            files = list(folder_path.glob("*.txt"))
+            # Acepta tanto .txt como .pdf (insensible a mayúsculas)
+            files = [f for f in folder_path.iterdir() if f.suffix.lower() in [".txt", ".pdf"]]
             
             if not files:
                 self.log_queue.put("⚠️ No hay archivos .txt en la carpeta seleccionada.")
