@@ -102,11 +102,17 @@ es_core_news_lg-*/
 # Project Specific Ignores
 smart_cv_filter.db
 smart_cv_filter.log*
-
-# Gemini API Artifacts
-.gemini/
-.cursor/
+# No subir los resultados de las clasificaciones (CVs de candidatos)
+procesos_seleccion/
+Procesos/
 
 # Specific Project Artifacts
 openspec/changes/*/artifacts/
 ai-specs/changes/*/artifacts/
+
+# AI ,Gemini and Cursor Specific
+.gemini/
+.cursor/
+.roo/
+ai-specs/
+openspec/

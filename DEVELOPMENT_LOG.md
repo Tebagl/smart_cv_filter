@@ -132,3 +132,63 @@ Modo 100% Local: Se han eliminado las API Keys (Google/OpenAI) del archivo .env.
 * **Umbral Crítico (Match):** ≥ 40% para estado **SI**.
 * **Modelo Utilizado:** `paraphrase-multilingual-MiniLM-L12-v2` (100% Local).
 * **Mejora:** Reducción de "Falsos Negativos" en CVs con alta carga de datos personales (ruido semántico).
+
+# DEVELOPMENT_LOG
+
+## Estado del Proyecto
+Fase actual: Refactorización y Gestión Documental Avanzada (Módulo 5)
+
+## Especificaciones Técnicas
+- **Análisis Semántico Local**: Uso de `sentence-transformers` (`paraphrase-multilingual-MiniLM-L12-v2`) para evaluación 100% offline.
+- **Filtrado de Negaciones**: Implementación de Regex para detectar y omitir bloques de texto con negaciones explícitas (ej. "No tengo experiencia en..."), eliminando falsos positivos semánticos.
+- **Clasificación y Enrutamiento**: Organización física de archivos en directorios `RECLUTADOS/`, `DUDAS/` y `DESCARTADOS/` según el score y la decisión de la IA.
+- **Ordenamiento Físico Invertido**: Los archivos se renombran dinámicamente utilizando un índice de orden (`100 - score`) para garantizar que los mejores candidatos aparezcan en la parte superior del explorador de archivos del sistema operativo por defecto.
+
+## Registro de Cambios (Changelog)
+
+- [2026-03-20] Documento DEVELOPMENT_LOG.md inicializado.
+- [2026-03-20] Módulo 1: UniversalExtractor completado y validado.
+- [2026-03-20] Módulo 2: LocalAnonymizer completado.
+- [2026-03-20] Módulo 3: Evaluación Semántica (LLM) añadido e integrado.
+- [2026-03-23] Mejoras en Módulo de Análisis de CV (v0.5) y script `reset_demo.py`.
+- [2026-03-23] Módulo 4: Interfaz de Usuario de Escritorio (v0.6) con `customtkinter`.
+- [2026-03-26] **Hito: Transición a Arquitectura de IA 100% Local**. Eliminación de APIs externas y uso de modelos embebidos en RAM.
+- [2026-03-27] Implementación de Clasificación Física de Archivos y persistencia en DB.
+- [2026-04-08] **Módulo 5: Motor de Análisis Blindado y Gestión por Proyectos (v1.0)**:
+    * **Optimización del Analizador**: Implementación de lógica de negación por bloques para evitar "falsos expertos" (Parche Julia Blanco).
+    * **Sistema de "Procesos de Selección"**: Reestructuración de salida. Los resultados se organizan en `procesos_seleccion/{fecha}_{puesto}/`.
+    * **Ordenamiento por Puntuación**: 
+        * **Backend**: Renombrado de archivos con prefijo de orden físico (`01_`, `02_`) basado en el score invertido.
+        * **Frontend**: Lista de candidatos en GUI sincronizada para mostrar primero los scores más altos.
+    * **Mejoras de UX**:
+        * El buscador de carpetas ahora inicializa por defecto en la carpeta de Documentos/Escritorio del usuario.
+        * Validación obligatoria de campos antes de iniciar el proceso.
+    * **Refactorización**: Independencia total del `CVHandler` respecto a rutas fijas e inyección dinámica de paths desde la GUI.
+
+## Detalles de Implementación de GUI
+- **Framework**: `customtkinter` para diseño moderno.
+- **Arquitectura**: Separación de responsabilidades. La GUI captura datos y delega la lógica de rutas al `CVHandler`.
+- **Funcionalidades**:
+    * Selector de carpeta externa (Desktop/Documents como base).
+    * Logging en tiempo real con detalle de "Motivo de la IA".
+    * Listado de candidatos aceptados con acceso directo al archivo mediante clic.
+
+## Próximos Pasos
+- **Patrón Manager**: Finalizar la migración de la lógica de creación de directorios a un `ProcessManager` independiente.
+- **Empaquetado**: Configurar `PyInstaller` (.spec) para incluir el modelo de IA local dentro del ejecutable.
+- **Reportes**: Implementar generación de archivo `.csv` resumen por cada proceso de selección.
+
+---
+
+### 📝 Registro de Calibración Final (Módulo 5)
+**Fecha:** 2026-04-08  
+**Estado:** Validado y Calibrado
+
+> **[2026-04-08] Blindaje ante Negaciones:**
+> Se confirma el éxito del filtrado tras implementar el parche de negaciones. El sistema distingue correctamente entre perfiles que "mencionan" una tecnología para negar su conocimiento (ruido semántico) vs. aquellos que realmente poseen la competencia.
+
+#### Resumen de Calibración Semántica:
+* **RECLUTADOS:** Score ≥ 70% o Decisión "SI" explícita.
+* **DUDAS:** Score entre 50% y 69%.
+* **DESCARTADOS:** Score < 50% o 0 coincidencias técnicas (Penalización de 20 pts).
+* **Modelo Utilizado:** `paraphrase-multilingual-MiniLM-L12-v2` (100% Local).

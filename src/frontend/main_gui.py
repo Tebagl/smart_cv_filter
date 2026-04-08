@@ -20,13 +20,15 @@ def get_base_path():
 base_path = get_base_path()
 sys.path.insert(0, base_path)
 
-# Importar el nuevo CVHandler (Sin base de datos)
+# Importar el backend
 from src.backend.cv_handler import CVHandler
 from src.backend.analyzer import CVAnalyzer
+from src.backend.process_manager import ProcessManager
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
 
 class SmartCVFilterApp(ctk.CTk):
     def __init__(self):
@@ -35,9 +37,12 @@ class SmartCVFilterApp(ctk.CTk):
         # 🚀 Inicialización de Backend
         self.analyzer = CVAnalyzer() 
         self.cv_handler = CVHandler(self.analyzer)
+        self.process_manager = ProcessManager(base_path, self.cv_handler)
+        
+        self.results_dir = "" # Se llenará al dar a Clasificar
         
         # Ruta de resultados (Asegúrate de que coincida con RECLUTADOS en mayúsculas)
-        self.results_dir = os.path.join(base_path, "src", "backend", "output", "RECLUTADOS")
+        #self.results_dir = os.path.join(base_path, "src", "backend", "output", "RECLUTADOS")
 
         # Configuración de la ventana
         self.title("Smart CV Filter - Folder Edition")
@@ -238,36 +243,23 @@ class SmartCVFilterApp(ctk.CTk):
             self.input_folder.set(path)
 
     def run_analysis(self):
-        puesto = self.entry_puesto.get().strip().replace(" ", "_")
+        puesto = self.entry_puesto.get().strip()
         fecha = self.entry_fecha.get().strip()
-        
-        # --- VALIDACIÓN DE CARPETA Y PUESTO ---
         folder_path = self.input_folder.get().strip()
-        if not folder_path:
-            self.log_text.insert("end", "⚠️ ERROR: Debes seleccionar una carpeta de entrada con los CVs.\n")
-            return
-       
-        if not puesto:
-            self.log_text.insert("end", "⚠️ Por favor, introduce el nombre del puesto.\n")
+
+        # Validaciones simples de UI
+        if not folder_path or not puesto:
+            self.log_text.insert("end", "⚠️ ERROR: Faltan datos obligatorios.\n")
             return
 
-        # Creamos la ruta dinámica
-        nombre_carpeta = f"{fecha}_{puesto}"
-        ruta_proceso = os.path.join(base_path, "Procesos de selección", nombre_carpeta)
-        
-        # Actualizamos el handler con la nueva ruta de salida
-        self.cv_handler.base_output = os.path.join(ruta_proceso, "output")
-        self.cv_handler._ensure_folders() # Crea RECLUTADOS, DUDAS, etc.
-        
-        # Actualizamos donde la GUI mira los resultados
-        self.results_dir = os.path.join(ruta_proceso, "output", "RECLUTADOS")
+        # 🎯 LA MAGIA: Delegamos la creación de carpetas al Manager
+        self.results_dir = self.process_manager.configure_process(puesto, fecha)
 
-        # Ejecutamos el hilo como antes
+        # Bloquear botón e iniciar hilo
         user_description = self.jd_textbox.get("0.0", "end").strip()
         self.btn_analyze.configure(state="disabled")
         
-        thread = threading.Thread(target=self.analysis_worker, args=(user_description,), daemon=True)
-        thread.start()
+        threading.Thread(target=self.analysis_worker, args=(user_description,), daemon=True).start()
         
     def analysis_worker(self, user_job_desc):
         try:

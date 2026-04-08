@@ -8,79 +8,62 @@ Sistema profesional de filtrado y evaluación semántica de CVs que prioriza la 
 ## 🕒 Historial de Desarrollo y Log de Versiones
 
 ### **Fase 1: Cimientos y Extracción (v0.1 - v0.3)**
-* **v0.1 - UniversalExtractor (`extractor.py`)**:
-    * Implementación de `pdfplumber` para manejar CVs complejos a 2 columnas mediante *bounding boxes*.
-    * Soporte para DOCX (`python-docx`) y TXT plano.
-* **v0.2 - LocalAnonymizer (`anonymizer.py`)**:
-    * Cumplimiento estricto de **GDPR**.
-    * Uso híbrido de Regex para Emails/Teléfonos y **spaCy (NER)** para nombres de personas.
-    * Migración del modelo `sm` al modelo medio `es_core_news_md` para mayor precisión.
-* **v0.3 - Calidad y Pruebas**:
-    * Creación de suite de tests unitarios (`unittest`) con `MagicMock` para simular PDFs sin archivos reales.
+* **v0.1 - UniversalExtractor**: Soporte para PDF (pdfplumber), DOCX y TXT.
+* **v0.2 - LocalAnonymizer**: Anonimización local mediante spaCy (NER) para cumplimiento de GDPR.
+* **v0.3 - Calidad**: Suite de tests unitarios y validación de extracción.
 
 ### **Fase 2: Orquestación y Transición a la Nube (v0.4 - v0.6)**
-* **v0.4 - Primer Orquestador (`main.py`)**:
-    * Punto de entrada asíncrono. Manejo de variables de entorno (`python-dotenv`).
-* **v0.5 - Era de las APIs Externas (Gemini)**:
-    * Integración de **Google Gemini** (v1.5/2.5 Flash) para análisis semántico.
-    * Implementación de rúbrica de evaluación (Ventas B2B, Comunicación, Mercado IT).
-    * Validación exitosa de perfiles (Docentes vs Ingenieros vs Ventas).
-* **v0.6 - Utilidades de Sistema**:
-    * Creación de scripts de limpieza y gestión de entorno.
+* **v0.5 - Era Gemini**: Integración temporal con Google Gemini API para validación de rúbricas.
+* **v0.6 - Utilidades**: Scripts de limpieza de entorno y gestión de base de datos SQL.
 
-### **Fase 3: Profesionalización e IA Local (v0.7 - v1.2.0) [ESTADO ACTUAL]**
-* **v0.7 - Interfaz Gráfica Moderna**:
-    * Desarrollo de GUI con `customtkinter` (Modo Oscuro/Claro).
-    * Logging en tiempo real integrado en la ventana.
-* **v1.1.0 - El Salto a lo Local (Privacy Update)**:
-    * **Eliminación de APIs externas**: Sustitución de Gemini por `sentence-transformers` y `torch`.
-    * Implementación de base de datos local **SQLite** con **SQLAlchemy** para persistencia.
-    * Introducción de **Structured Logging** con `structlog` para trazabilidad profesional.
+### **Fase 3: IA Local y Gestión de Procesos (v0.7 - v1.3.0) [ESTADO ACTUAL]**
+* **v1.1.0 - Privacy & Local Update**: 
+    * Eliminación total de APIs externas. 
+    * Integración de `sentence-transformers` (`MiniLM-L12-v2`) para análisis 100% local.
 * **v1.2.0 - The Organizer Update**:
-    * **Clasificación Física**: Automatización del movimiento de archivos a carpetas `RECLUTADOS` y `DESCARTADOS` mediante `shutil`.
-    * Optimización de procesos por lotes (150+ CVs).
-    * Refactorización de rutas robustas con `pathlib`.
+    * Clasificación física automatizada en carpetas `RECLUTADOS`, `DUDAS` y `DESCARTADOS`.
+* **v1.3.0 - The Precision & Project Update (Actual)**:
+    * **Parche de Negaciones**: Implementación de lógica Regex para ignorar tecnologías que el candidato menciona explícitamente no poseer.
+    * **Gestión por Proyectos**: Reubicación de la salida a la carpeta `procesos_seleccion/`, organizando los resultados por puesto y fecha.
+    * **Orden Físico Profesional**: Renombrado de archivos con índice invertido para que el explorador de archivos del sistema operativo muestre los mejores perfiles al inicio.
+    * **UX Enhancement**: El diálogo de búsqueda de carpetas ahora inicializa en Documentos/Escritorio y cuenta con validación de campos obligatorios.
 
 ---
 
 ## 🏗️ Arquitectura del Sistema (Pipeline)
-1.  **Ingestión**: Recolección de archivos desde directorio configurado.
-2.  **Extracción**: Normalización de PDF/DOCX a texto plano.
-3.  **Sanitización**: Anonimización de PII (Datos personales) mediante spaCy.
-4.  **Análisis Local**: Comparación semántica (*Cosine Similarity*) entre CV y `job_description.txt`.
-5.  **Persistencia**: Registro en `smart_cv.db`.
-6.  **Logística**: Clasificación física de documentos según el veredicto de la IA.
+1.  **Ingestión**: Selección de carpeta externa de CVs (Desktop/Documents).
+2.  **Limpieza Semántica**: Detección de negaciones y limpieza de "ruido" técnico.
+3.  **Evaluación Local**: Cálculo de similitud del coseno mediante Embeddings locales.
+4.  **Decisión**: Clasificación en tres niveles (Apto/Duda/No Apto) basada en umbrales calibrados.
+5.  **Logística Documental**: Renombrado (índice invertido) y movimiento físico a la estructura de `procesos_seleccion`.
 
 ---
 
 ## 🚀 Hoja de Ruta Futura (Roadmap)
 
-### **Próximos Hitos (v1.3 - v1.5)**
-- [ ] **Empaquetado Final**: Generación de ejecutable `.exe` estable con PyInstaller incluyendo modelos de Torch/Spacy.
-- [ ] **Análisis por Pilares**: Desglosar la puntuación en: Experiencia, Habilidades Técnicas y Formación.
-- [ ] **Exportación de Reportes**: Generar archivos Excel/CSV con el ranking consolidado de candidatos.
-- [ ] **Pre-visualización**: Abrir el CV analizado directamente desde la interfaz con doble clic.
-- [ ] **Optimización de Carga**: Implementar *Lazy Loading* para que la App abra instantáneamente mientras el modelo de IA carga en segundo plano.
+### **Próximos Hitos (v1.4 - v1.5)**
+- [ ] **Refactorización (ProcessManager)**: Separar completamente la lógica de creación de carpetas de la interfaz de usuario.
+- [ ] **Empaquetado Final**: Generación de ejecutable `.exe` único incluyendo los pesos del modelo de IA.
+- [ ] **Exportación de Reportes**: Generar un archivo CSV resumen con el ranking y motivos dentro de cada carpeta de proceso.
+- [ ] **Lazy Loading**: Carga asíncrona del modelo de IA para que la ventana abra instantáneamente.
 
 ### **Objetivos a Largo Plazo**
-- [ ] **Soporte Multi-idioma**: Adaptar el anonimizador y el análisis para CVs en inglés y francés.
-- [ ] **Feedback Loop**: Permitir que el reclutador corrija a la IA para re-entrenar los umbrales de éxito.
-- [ ] **Dashboard Estadístico**: Gráficas de embudo (Candidatos totales vs Aptos).
-- [ ] **Versión Web**: Migración de la lógica a un entorno basado en navegador conservando la privacidad.
+- [ ] **Soporte Multi-idioma**: Adaptar el motor de negaciones para CVs en inglés.
+- [ ] **Feedback Loop**: Permitir que el reclutador ajuste los umbrales de puntuación desde la GUI.
+- [ ] **Pre-visualización**: Abrir el CV analizado directamente desde la lista de la interfaz.
 
 ---
 
 ## 🛠️ Stack Tecnológico Actual
 * **Lenguaje**: Python 3.10+
-* **GUI**: CustomTkinter
-* **NLP/AI**: spaCy (`es_core_news_md`), sentence-transformers, PyTorch.
-* **Base de Datos**: SQLite + SQLAlchemy.
-* **Logging**: Structlog + standard logging.
-* **Empaquetado**: PyInstaller.
+* **GUI**: CustomTkinter (Modern Dark Theme).
+* **NLP/AI**: spaCy, sentence-transformers, PyTorch (All Local).
+* **Documentos**: PyMuPDF (fitz), python-docx.
+* **Logística**: Shutil, Pathlib.
 
 ---
 
 ## 📝 Principios de Diseño
 * **Privacidad**: El dato nunca sale del ordenador del usuario.
-* **Determinismo**: Mismos datos, mismos resultados (Temperatura 0 en modelos).
-* **Resiliencia**: Manejo de errores en lectura de archivos dañados o formatos extraños.
+* **Orden**: El sistema no solo analiza, sino que organiza el caos documental.
+* **Transparencia**: El "Motivo" de la IA siempre es visible para el reclutador.

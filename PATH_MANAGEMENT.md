@@ -1,37 +1,36 @@
 # 📂 PATH MANAGEMENT - Smart CV Filter
 
 ## 🌍 Visión General
-Para garantizar la estabilidad del sistema tanto en desarrollo como en el ejecutable final (`.exe`), se ha implementado un sistema de rutas relativas dinámicas basadas en la ubicación del proceso.
+El sistema utiliza un motor de resolución de rutas dinámicas para asegurar la portabilidad del software. Se ha migrado de un modelo de carpetas estáticas a un modelo de **Gestión por Proyectos**, donde las rutas de salida se generan bajo demanda según el puesto y la fecha.
 
 ## 📍 Ubicación de Componentes Clave
 
+### 🏗️ Carpeta Raíz de Procesos
+- **Ruta**: `procesos_seleccion/`
+- **Descripción**: Directorio principal en la raíz del proyecto que agrupa todos los procesos de filtrado realizados.
+- **Estructura Interna**: 
+  `procesos_seleccion/{AAAA-MM-DD}_{Nombre_del_Puesto}/output/`
+
 ### 🗄️ Base de Datos (`smart_cv.db`)
 - **Ruta**: `src/data/smart_cv.db`
-- **Persistencia**: La base de datos se mantiene fija en esta ubicación para asegurar que los registros de candidatos no se pierdan entre sesiones.
-- **Inicialización**: El sistema verifica la existencia de la carpeta `src/data/` y la crea automáticamente si no existe.
+- **Gestión**: Centralizada para mantener el historial de análisis y scores independientemente del proceso de selección activo.
 
-### 📁 Directorios de Salida (Output)
-El sistema clasifica físicamente los archivos tras el análisis:
-- **Reclutados**: `src/backend/output/RECLUTADOS/`
-- **Descartados**: `src/backend/output/DESCARTADOS/`
-
-### 📜 Registros (Logs)
-- **Ruta**: `/logs/smart_cv_filter.log` (en la raíz del proyecto).
-- **Gestión**: Implementa rotación automática (máx. 10MB) para no saturar el almacenamiento.
+### 📁 Directorios de Salida Dinámicos (Output)
+Dentro de cada carpeta de proceso, el sistema crea:
+- **RECLUTADOS**: Para perfiles aptos (Score ≥ 70% o Apto IA).
+- **DUDAS**: Para perfiles en zona gris (Score 50-69%).
+- **DESCARTADOS**: Para perfiles no aptos (Score < 50%).
 
 ## 💻 Implementación Técnica (Lógica de Rutas)
 
-Para evitar errores en entornos "congelados" (PyInstaller), utilizamos `pathlib` para detectar la raíz del proyecto de forma robusta:
+### 1. Resolución de Base para Ejecutables
+Para garantizar que el programa funcione tras ser empaquetado con PyInstaller, implementamos una función de detección de entorno:
 
 ```python
-from pathlib import Path
-import sys
-
-# Detección de la Raíz del Proyecto
-if getattr(sys, 'frozen', False):
-    # Si es un ejecutable (.exe)
-    BASE_DIR = Path(sys.executable).parent
-else:
-    # Si es entorno de desarrollo (.py)
-    BASE_DIR = Path(__file__).resolve().parent.parent.parent 
-```
+def get_base_path():
+    if getattr(sys, 'frozen', False):
+        # Entorno de Ejecutable (.exe)
+        return Path(sys._MEIPASS)
+    else:
+        # Entorno de Desarrollo (.py)
+        return Path(__file__).resolve().parent.parent.parent
