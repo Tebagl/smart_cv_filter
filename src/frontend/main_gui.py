@@ -62,68 +62,67 @@ class SmartCVFilterApp(ctk.CTk):
         self.update_top_candidates()
 
     def create_widgets(self):
+        # Frame principal con padding
         main_frame = ctk.CTkFrame(self)
         main_frame.pack(padx=20, pady=20, fill="both", expand=True)
 
-        # --- SECTOR SUPERIOR ---
-        top_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        top_frame.pack(fill="x", padx=10, pady=10)
-
-        # Selector de carpeta
-        folder_frame = ctk.CTkFrame(top_frame)
-        folder_frame.pack(fill="x", pady=(0, 10))
+        # --- SECCIÓN 1: CARPETA DE ENTRADA (ARRIBA) ---
+        folder_frame = ctk.CTkFrame(main_frame)
+        folder_frame.pack(fill="x", padx=10, pady=(10, 5))
         
-        ctk.CTkLabel(folder_frame, text="Carpeta de entrada:", font=("Arial", 12, "bold")).pack(side="left", padx=10)
+        ctk.CTkLabel(folder_frame, text="📂 Carpeta de entrada:", font=("Arial", 12, "bold")).pack(side="left", padx=10)
         ctk.CTkEntry(folder_frame, textvariable=self.input_folder, width=350).pack(side="left", padx=5, expand=True, fill="x")
         ctk.CTkButton(folder_frame, text="Explorar", width=100, command=self.select_input_folder).pack(side="right", padx=10)
-    
-        # Job Description
-        ctk.CTkLabel(top_frame, text="📝 Job Description:", font=("Arial", 13, "bold")).pack(anchor="w", padx=5)
-        
-        # 1. CREAMOS EL TEXTBOX (Primero)
-        self.jd_textbox = ctk.CTkTextbox(top_frame, height=150, border_width=2)
-        self.jd_textbox.pack(fill="x", pady=5, padx=5)
-        self.jd_textbox.insert("0.0", "Requisitos del puesto...")
 
-        # 2. CREAMOS EL MENÚ Y HACEMOS EL BIND (Después)
-       # --- Menú de Clic Derecho Estilizado ---
-        self.menu_pegar = tkinter.Menu(
-            self, 
-            tearoff=0, 
-            bg="#2b2b2b",       # Color de fondo oscuro (como CTk)
-            fg="white",         # Color de letra
-            activebackground="#1f538d", # Color cuando pasas el ratón (Azul CTk)
-            activeforeground="white",
-            bd=0,               # Sin bordes gruesos
-            font=("Arial", 11)  # Fuente más moderna
-        )
+        # --- SECCIÓN 2: CONTENEDOR MEDIO (COLUMNAS) ---
+        mid_container = ctk.CTkFrame(main_frame, fg_color="transparent")
+        mid_container.pack(fill="both", expand=True, padx=10, pady=5)
+        
+        # Configuramos el peso de las columnas (60% izquierda, 40% derecha)
+        mid_container.columnconfigure(0, weight=6)
+        mid_container.columnconfigure(1, weight=4)
+        mid_container.rowconfigure(0, weight=1)
+
+        # --- COLUMNA IZQUIERDA (JD + BOTÓN) ---
+        left_column = ctk.CTkFrame(mid_container, fg_color="transparent")
+        left_column.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        
+        ctk.CTkLabel(left_column, text="📝 Job Description:", font=("Arial", 13, "bold")).pack(anchor="w", pady=(0, 5))
+        
+        # Textbox de JD
+        self.jd_textbox = ctk.CTkTextbox(left_column, border_width=2)
+        self.jd_textbox.pack(fill="both", expand=True, pady=(0, 10))
+        self.jd_textbox.insert("0.0", "Requisitos del puesto...")
+        
+        # Menú de clic derecho
+        self.menu_pegar = tkinter.Menu(self, tearoff=0, bg="#2b2b2b", fg="white", activebackground="#1f538d", bd=0)
         self.menu_pegar.add_command(label="  📋 Pegar Texto  ", command=self.pegar_texto)
         self.jd_textbox.bind("<Button-3>", self.mostrar_menu)
 
-        # --- BOTONES DE ACCIÓN ---
-        button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        button_frame.pack(fill="x", padx=10, pady=5)
+        # Botón Clasificar (Debajo de la JD)
+        self.btn_analyze = ctk.CTkButton(
+            left_column, 
+            text="🚀 CLASIFICAR CVS", 
+            font=("Arial", 14, "bold"), 
+            height=45, 
+            command=self.run_analysis
+        )
+        self.btn_analyze.pack(fill="x")
 
-        self.btn_analyze = ctk.CTkButton(button_frame, text="🚀 CLASIFICAR CVS", font=("Arial", 14, "bold"), height=40, command=self.run_analysis)
-        self.btn_analyze.pack(side="left", expand=True, fill="x", padx=(0, 5))
-
-        # --- SECTOR INFERIOR ---
-        bottom_container = ctk.CTkFrame(main_frame, fg_color="transparent")
-        bottom_container.pack(fill="both", expand=True, padx=10, pady=10)
-
-        # Consola de logs
-        console_frame = ctk.CTkFrame(bottom_container)
-        console_frame.pack(side="left", fill="both", expand=True, padx=(0, 5))
-        self.log_text = ctk.CTkTextbox(console_frame, fg_color="#1a1a1a", text_color="#00ff00")
-        self.log_text.pack(fill="both", expand=True, padx=10, pady=10)
-
-        # Lista de candidatos
-        top_candidates_frame = ctk.CTkFrame(bottom_container, width=250)
-        top_candidates_frame.pack(side="right", fill="both", expand=False, padx=(5, 0))
+        # --- COLUMNA DERECHA (CVS ACEPTADOS) ---
+        right_column = ctk.CTkFrame(mid_container)
+        right_column.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
         
-        self.top_n_var = ctk.StringVar(value="15") # Variable para el límite
-        self.candidates_list = ctk.CTkScrollableFrame(top_candidates_frame, label_text="CVs Aceptados (Carpeta)")
+        self.candidates_list = ctk.CTkScrollableFrame(right_column, label_text="CVs Aceptados (RECLUTADOS)")
         self.candidates_list.pack(fill="both", expand=True, padx=5, pady=5)
+
+        # --- SECCIÓN 3: CONSOLA DE LOGS (ABAJO) ---
+        console_frame = ctk.CTkFrame(main_frame)
+        console_frame.pack(fill="x", side="bottom", padx=10, pady=(5, 10))
+        
+        ctk.CTkLabel(console_frame, text="🖥️ Log de procesamiento:", font=("Arial", 11, "bold")).pack(anchor="w", padx=10, pady=(5, 0))
+        self.log_text = ctk.CTkTextbox(console_frame, height=120, fg_color="#1a1a1a", text_color="#00ff00", font=("Courier", 12))
+        self.log_text.pack(fill="x", padx=10, pady=10)
 
     # --- Funciones de Soporte para Clic Derecho ---
     def mostrar_menu(self, event):
@@ -149,7 +148,7 @@ class SmartCVFilterApp(ctk.CTk):
         except Exception as e:
             # Si el portapapeles no tiene texto (ej. una imagen), no hace nada
             pass
-        
+
     # --- Lógica de la Aplicación ---
     def update_top_candidates(self):
         for widget in self.candidates_list.winfo_children():
@@ -216,14 +215,17 @@ class SmartCVFilterApp(ctk.CTk):
 
             for file_path in files:
                 self.log_queue.put(f"🔍 Analizando: {file_path.name}")
+                
                 resultado = self.cv_handler.process_cv(str(file_path), user_job_desc)
                 
                 if resultado.get("status") == "success":
                     self.log_queue.put(f"   ✅ Score: {resultado['score']}% -> {resultado['decision']}")
+                    # --- AQUÍ SE MUESTRA EL MOTIVO ---
+                    self.log_queue.put(f"   💡 Motivo: {resultado['reason']}")
                 else:
                     self.log_queue.put(f"   ❌ Error: {resultado.get('reason')}")
                 
-                self.log_queue.put("-" * 30)
+                self.log_queue.put("-" * 40) # Una línea separadora un poco más larga
 
             self.log_queue.put("\n🎊 ¡Clasificación terminada!")
             self.log_queue.put("UPDATE_LIST")
@@ -232,7 +234,7 @@ class SmartCVFilterApp(ctk.CTk):
         except Exception as e:
             self.log_queue.put(f"❌ Error crítico: {e}")
             self.log_queue.put("FIN")
-
+            
     def check_queues(self):
         try:
             while not self.log_queue.empty():

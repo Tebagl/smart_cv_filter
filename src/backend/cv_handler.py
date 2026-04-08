@@ -27,42 +27,36 @@ class CVHandler:
 
     def process_cv(self, file_path: str, user_job_desc: str = None):
         """
-        Analiza el CV y lo mueve físicamente según el score de la IA.
+        Analiza el CV y lo mueve físicamente según el score y guarda la razón.
         """
         try:
-            # 1. Leer el contenido del archivo .txt
             with open(file_path, 'r', encoding='utf-8') as f:
                 raw_text = f.read()
 
-            # 2. Analizar con la IA Embebida
             jd = user_job_desc if user_job_desc else "Perfil técnico general"
             decision = self.analyzer.analyze(raw_text, jd)
             
-            # DEBUG: Esto aparecerá en tu terminal para ver qué responde la IA realmente
-            print(f"\n--- DEBUG IA LOCAL ---")
-            print(f"Archivo: {os.path.basename(file_path)}")
-            print(f"Tipo respuesta: {type(decision)}")
-            print(f"Contenido: {decision}")
-            print(f"----------------------\n")
-
-            # 3. Extraer puntuación (Score) de forma robusta
-            import re
+            # --- NUEVA LÓGICA DE EXTRACCIÓN (Score + Razón) ---
             f_score = 0
-            # Convertimos la respuesta de la IA a string y buscamos números
+            reason = "No se pudo extraer una explicación detallada."
             texto_ia = str(decision)
-            numeros = re.findall(r'\d+', texto_ia)
-            
-            if numeros:
-                # Buscamos un número que tenga sentido como score (0-100)
-                for n in numeros:
-                    val = int(n)
-                    if 0 <= val <= 100:
-                        f_score = val
-                        break
 
-            # 4. Lógica de clasificación por carpetas
-            nombre_archivo = os.path.basename(file_path)
+            # 1. Extraer el score (primer número 0-100 que encuentre)
+            numeros = re.findall(r'\b(?:\d{1,2}|100)\b', texto_ia)
+            if numeros:
+                f_score = int(numeros[0])
             
+            # 2. Extraer la razón (intentamos quitar el score del texto)
+            if isinstance(decision, dict):
+                reason = decision.get('reason', decision.get('explicacion', texto_ia))
+            else:
+                # Limpiamos el texto para quitar el número y posibles prefijos como ":" o "-"
+                reason = re.sub(r'^\d+[%]?\s*[:-]?\s*', '', texto_ia).strip()
+                if not reason:
+                    reason = texto_ia # Backup por si la limpieza borra todo
+
+            # --- Lógica de carpetas (Se mantiene igual) ---
+            nombre_archivo = os.path.basename(file_path)
             if f_score >= 50:
                 destino = "RECLUTADOS"
             elif 30 <= f_score < 50:
@@ -70,20 +64,15 @@ class CVHandler:
             else:
                 destino = "DESCARTADOS"
 
-            # 5. Mover el archivo físicamente (shutil.move limpia la entrada)
             ruta_final = os.path.join(self.base_output, destino, nombre_archivo)
-            
-            # Verificamos si el archivo existe antes de mover (evita errores)
             if os.path.exists(file_path):
                 shutil.move(file_path, ruta_final)
-                logger.info(f"✅ {nombre_archivo} movido a {destino} (Score: {f_score}%)")
-            else:
-                logger.warning(f"⚠️ El archivo ya no existe en la ruta: {file_path}")
 
             return {
                 "status": "success",
                 "decision": destino,
                 "score": f_score,
+                "reason": reason,  
                 "dest_path": ruta_final
             }
 
