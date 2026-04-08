@@ -10,15 +10,30 @@ import platform
 import subprocess
 
 # --- Configuración de Rutas ---
-def get_base_path():
+# --- Configuración de Rutas ---
+def get_resource_path():
+    """Ruta para archivos internos (modelos, código empaquetado)"""
     try:
-        base_path = sys._MEIPASS
+        # PyInstaller crea una carpeta temporal y guarda la ruta en _MEIPASS
+        return sys._MEIPASS
     except Exception:
-        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-    return base_path
+        # Si ejecutamos el .py normalmente
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-base_path = get_base_path()
-sys.path.insert(0, base_path)
+def get_executable_path():
+    """Ruta donde reside el archivo .exe o el binario (para carpetas de salida)"""
+    if getattr(sys, 'frozen', False):
+        # Si es el ejecutable, queremos la carpeta donde está el archivo físico
+        return os.path.dirname(sys.executable)
+    # Si es modo desarrollo, usamos la raíz del proyecto
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+# Definimos las dos rutas críticas
+resource_path = get_resource_path()    # Para buscar 'models'
+executable_path = get_executable_path() # Para crear 'procesos_seleccion'
+
+# Importante: los imports del backend deben buscarse en resource_path
+sys.path.insert(0, resource_path)
 
 # Importar el backend
 from src.backend.cv_handler import CVHandler
@@ -37,7 +52,7 @@ class SmartCVFilterApp(ctk.CTk):
         # 🚀 Inicialización de Backend
         self.analyzer = CVAnalyzer() 
         self.cv_handler = CVHandler(self.analyzer)
-        self.process_manager = ProcessManager(base_path, self.cv_handler)
+        self.process_manager = ProcessManager(executable_path, self.cv_handler)
         
         self.results_dir = "" # Se llenará al dar a Clasificar
         
