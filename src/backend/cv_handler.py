@@ -46,14 +46,14 @@ class CVHandler:
             if numeros:
                 f_score = int(numeros[0])
             
-            # 2. Extraer la razón (intentamos quitar el score del texto)
-            if isinstance(decision, dict):
-                reason = decision.get('reason', decision.get('explicacion', texto_ia))
+            # 2. Limpiar el motivo (quitar el formato JSON feo para el log)
+            reason = texto_ia
+            if '"motivo":' in texto_ia or "'motivo':" in texto_ia:
+                match = re.search(r"['\"]motivo['\"]\s*:\s*['\"](.*?)['\"]", texto_ia, re.DOTALL)
+                if match:
+                    reason = match.group(1)
             else:
-                # Limpiamos el texto para quitar el número y posibles prefijos como ":" o "-"
                 reason = re.sub(r'^\d+[%]?\s*[:-]?\s*', '', texto_ia).strip()
-                if not reason:
-                    reason = texto_ia # Backup por si la limpieza borra todo
 
             # --- Lógica de carpetas (Se mantiene igual) ---
             nombre_archivo = os.path.basename(file_path)

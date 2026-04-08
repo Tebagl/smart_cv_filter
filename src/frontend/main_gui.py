@@ -87,12 +87,11 @@ class SmartCVFilterApp(ctk.CTk):
         left_column = ctk.CTkFrame(mid_container, fg_color="transparent")
         left_column.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
         
-        ctk.CTkLabel(left_column, text="📝 Job Description:", font=("Arial", 13, "bold")).pack(anchor="w", pady=(0, 5))
+        ctk.CTkLabel(left_column, text="📝 Descripción del puesto:", font=("Arial", 13, "bold")).pack(anchor="w", pady=(0, 5))
         
         # Textbox de JD
         self.jd_textbox = ctk.CTkTextbox(left_column, border_width=2)
         self.jd_textbox.pack(fill="both", expand=True, pady=(0, 10))
-        self.jd_textbox.insert("0.0", "Requisitos del puesto...")
         
         # Menú de clic derecho
         self.menu_pegar = tkinter.Menu(self, tearoff=0, bg="#2b2b2b", fg="white", activebackground="#1f538d", bd=0)
