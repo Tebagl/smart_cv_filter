@@ -211,16 +211,24 @@ class SmartCVFilterApp(ctk.CTk):
         if not os.path.exists(file_path):
             self.log_text.insert("end", f"⚠️ Archivo no encontrado: {file_path}\n")
             return
+        
         try:
             if platform.system() == "Windows":
                 os.startfile(file_path)
-            elif platform.system() == "Darwin":
+            elif platform.system() == "Darwin": # macOS
                 subprocess.call(("open", file_path))
-            else:
-                subprocess.call(("xdg-open", file_path))
+            else: # 🐧 Linux (Aquí es donde estaba el problema)
+                # 🛡️ "Limpiamos" las librerías internas antes de llamar al sistema
+                env = dict(os.environ)
+                # Eliminamos la ruta de librerías de PyInstaller para este proceso
+                if "LD_LIBRARY_PATH" in env:
+                    del env["LD_LIBRARY_PATH"]
+                
+                # Ejecutamos xdg-open con el entorno limpio
+                subprocess.Popen(["xdg-open", file_path], env=env)
+                
         except Exception as e:
             self.log_text.insert("end", f"❌ Error al abrir: {e}\n")
-
     def select_input_folder(self):
         from tkinter import filedialog
         import os
