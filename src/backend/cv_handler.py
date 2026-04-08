@@ -20,12 +20,13 @@ class CVHandler:
 
     def _ensure_folders(self):
         """Crea la estructura de carpetas física si no existe"""
-        # IMPORTANTE: Estos nombres deben coincidir con los que busca la GUI
+        # Aseguramos que la carpeta base de este proceso existe
+        os.makedirs(self.base_output, exist_ok=True)
+        
         folders = ["RECLUTADOS", "DUDAS", "DESCARTADOS"]
         for f in folders:
             path = os.path.join(self.base_output, f)
             os.makedirs(path, exist_ok=True)
-            logger.info(f"📁 Carpeta verificada: {path}")
 
     def _extract_text_from_pdf(self, pdf_path):
         """Extrae todo el texto de un archivo PDF."""

@@ -66,6 +66,23 @@ class SmartCVFilterApp(ctk.CTk):
         main_frame = ctk.CTkFrame(self)
         main_frame.pack(padx=20, pady=20, fill="both", expand=True)
 
+        # --- NUEVA SECCIÓN: DATOS DEL PROCESO ---
+        process_info_frame = ctk.CTkFrame(main_frame)
+        process_info_frame.pack(fill="x", padx=10, pady=5)
+
+        # Campo Título
+        ctk.CTkLabel(process_info_frame, text="📌 Puesto:", font=("Arial", 12, "bold")).pack(side="left", padx=10)
+        self.entry_puesto = ctk.CTkEntry(process_info_frame, placeholder_text="Ej: Senior Data Engineer", width=200)
+        self.entry_puesto.pack(side="left", padx=5)
+
+        # Campo Fecha (por defecto hoy)
+        from datetime import datetime
+        fecha_hoy = datetime.now().strftime("%Y-%m-%d")
+        ctk.CTkLabel(process_info_frame, text="📅 Fecha:", font=("Arial", 12, "bold")).pack(side="left", padx=10)
+        self.entry_fecha = ctk.CTkEntry(process_info_frame, width=120)
+        self.entry_fecha.insert(0, fecha_hoy)
+        self.entry_fecha.pack(side="left", padx=5)
+
         # --- SECCIÓN 1: CARPETA DE ENTRADA (ARRIBA) ---
         folder_frame = ctk.CTkFrame(main_frame)
         folder_frame.pack(fill="x", padx=10, pady=(10, 5))
@@ -198,9 +215,27 @@ class SmartCVFilterApp(ctk.CTk):
             self.input_folder.set(path)
 
     def run_analysis(self):
-        self.log_text.delete("1.0", "end")
+        puesto = self.entry_puesto.get().strip().replace(" ", "_")
+        fecha = self.entry_fecha.get().strip()
+        
+        if not puesto:
+            self.log_text.insert("end", "⚠️ Por favor, introduce el nombre del puesto.\n")
+            return
+
+        # Creamos la ruta dinámica
+        nombre_carpeta = f"{fecha}_{puesto}"
+        ruta_proceso = os.path.join(base_path, "Procesos", nombre_carpeta)
+        
+        # Actualizamos el handler con la nueva ruta de salida
+        self.cv_handler.base_output = os.path.join(ruta_proceso, "output")
+        self.cv_handler._ensure_folders() # Crea RECLUTADOS, DUDAS, etc.
+        
+        # Actualizamos donde la GUI mira los resultados
+        self.results_dir = os.path.join(ruta_proceso, "output", "RECLUTADOS")
+
+        # Ejecutamos el hilo como antes
         user_description = self.jd_textbox.get("0.0", "end").strip()
-        self.btn_analyze.configure(state="disabled") # Evitar doble click
+        self.btn_analyze.configure(state="disabled")
         
         thread = threading.Thread(target=self.analysis_worker, args=(user_description,), daemon=True)
         thread.start()
