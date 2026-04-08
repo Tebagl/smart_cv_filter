@@ -45,7 +45,7 @@ class SmartCVFilterApp(ctk.CTk):
         #self.results_dir = os.path.join(base_path, "src", "backend", "output", "RECLUTADOS")
 
         # Configuración de la ventana
-        self.title("Smart CV Filter - Folder Edition")
+        self.title("Smart CV Filter")
         self.geometry("900x700")
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")

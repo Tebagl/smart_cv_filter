@@ -14,20 +14,19 @@ class CVHandler:
         Manejador de CVs para sistema de carpetas e IA Embebida.
         """
         self.analyzer = analyzer
-        # Definimos la ruta base de salida relativa a este archivo
-        self.base_output = os.path.join(os.path.dirname(__file__), "output")
-        self._ensure_folders()
+        # Inicializamos en None o vacío. 
+        # No creamos carpetas aquí para evitar duplicados al arrancar.
+        self.base_output = None 
 
     def _ensure_folders(self):
-        """Crea la estructura de carpetas física si no existe"""
-        # Aseguramos que la carpeta base de este proceso existe
-        os.makedirs(self.base_output, exist_ok=True)
-        
-        folders = ["RECLUTADOS", "DUDAS", "DESCARTADOS"]
-        for f in folders:
-            path = os.path.join(self.base_output, f)
-            os.makedirs(path, exist_ok=True)
+        """Crea la estructura de carpetas solo si base_output ha sido definido."""
+        if not self.base_output:
+            return
 
+        os.makedirs(self.base_output, exist_ok=True)
+        for folder in ["RECLUTADOS", "DESCARTADOS", "DUDAS"]:
+            os.makedirs(os.path.join(self.base_output, folder), exist_ok=True)
+    
     def _extract_text_from_pdf(self, pdf_path):
         """Extrae todo el texto de un archivo PDF."""
         text = ""
