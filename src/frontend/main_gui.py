@@ -160,7 +160,7 @@ class SmartCVFilterApp(ctk.CTk):
         try:
             # CAMBIO CLAVE: Ahora aceptamos .txt y .pdf (ignorando mayúsculas/minúsculas)
             archivos = [f for f in os.listdir(self.results_dir) 
-                       if f.lower().endswith(('.txt', '.pdf'))]
+            if f.lower().endswith(('.txt', '.pdf', '.docx'))]
             
             for nombre in archivos:
                 ruta_completa = os.path.join(self.results_dir, nombre)
@@ -207,12 +207,13 @@ class SmartCVFilterApp(ctk.CTk):
         
     def analysis_worker(self, user_job_desc):
         try:
+
             folder_path = Path(self.input_folder.get())
-            # Acepta tanto .txt como .pdf (insensible a mayúsculas)
-            files = [f for f in folder_path.iterdir() if f.suffix.lower() in [".txt", ".pdf"]]
-            
+            extensiones = [".txt", ".pdf", ".docx"]
+            files = [f for f in folder_path.iterdir() if f.suffix.lower() in extensiones]
+           
             if not files:
-                self.log_queue.put("⚠️ No hay archivos .txt en la carpeta seleccionada.")
+                self.log_queue.put("⚠️ No se encontraron archivos (PDF, DOCX, TXT) en la carpeta seleccionada.")
                 self.log_queue.put("FIN")
                 return
 

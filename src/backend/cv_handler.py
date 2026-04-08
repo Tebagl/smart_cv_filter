@@ -3,6 +3,7 @@ import shutil
 import logging
 import re
 import fitz  # PyMuPDF
+import docx # .docx
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -37,19 +38,31 @@ class CVHandler:
         except Exception as e:
             logger.error(f"Error leyendo PDF {pdf_path}: {e}")
             return ""
+        
+    def _extract_text_from_docx(self, docx_path):
+        """Extrae texto de archivos de Microsoft Word."""
+        try:
+            doc = docx.Document(docx_path)
+            full_text = [para.text for para in doc.paragraphs]
+            return "\n".join(full_text)
+        except Exception as e:
+            logger.error(f"Error leyendo DOCX {docx_path}: {e}")
+            return ""
 
     def process_cv(self, file_path: str, user_job_desc: str = None):
         """
         Analiza el CV y lo mueve físicamente según el score y guarda la razón.
         """
         try:
-            # --- NUEVA LÓGICA DE LECTURA SEGÚN EXTENSIÓN ---
             ext = os.path.splitext(file_path)[1].lower()
             
+            # --- Lógica Multiformato Ampliada ---
             if ext == ".pdf":
                 raw_text = self._extract_text_from_pdf(file_path)
+            elif ext == ".docx":
+                raw_text = self._extract_text_from_docx(file_path)
             else:
-                # Mantenemos soporte para .txt
+                # Soporte para .txt y otros formatos de texto plano
                 with open(file_path, 'r', encoding='utf-8') as f:
                     raw_text = f.read()
 
@@ -89,7 +102,7 @@ class CVHandler:
                 destino = "DUDAS"
             else:
                 destino = "DESCARTADOS"
-                
+
             ruta_final = os.path.join(self.base_output, destino, nombre_archivo)
             if os.path.exists(file_path):
                 shutil.move(file_path, ruta_final)
