@@ -21,6 +21,7 @@ class ProcessManager:
         # 🛡️ Limpiamos la interfaz visual nada más arrancar
         self.cleanup_ui_folders()
 
+
     def cleanup_ui_folders(self):
         """Oculta las carpetas técnicas para que el usuario final no se abrume."""
         to_hide = [
@@ -41,18 +42,32 @@ class ProcessManager:
             if os.path.exists(folder_path):
                 hide_folder(folder_path)
 
+
     def configure_process(self, puesto, fecha):
         """Configura las rutas físicas para un nuevo proceso de selección."""
-        # Aseguramos que el nombre de la carpeta sea amigable para el SO
         nombre_carpeta = f"{fecha}_{puesto.replace(' ', '_')}"
+        # Esta es la carpeta RAÍZ del proceso (ej: procesos_seleccion/2026-04-09_Puesto)
         ruta_proceso = os.path.join(self.base_path, "procesos_seleccion", nombre_carpeta)
         
         # Inyectar rutas en el handler
-        output_dir = os.path.join(ruta_proceso, "output")
-        self.cv_handler.base_output = output_dir
+        # Nota: He quitado la subcarpeta "output" para que sea más limpio
+        self.cv_handler.base_output = ruta_proceso 
         self.cv_handler._ensure_folders()
         
-        # Ocultamos la carpeta técnica 'src' de nuevo por si se hubiera creado después
         self.cleanup_ui_folders()
         
-        return os.path.join(output_dir, "RECLUTADOS")
+        # Devolvemos la raíz y la de reclutados
+        ruta_reclutados = os.path.join(ruta_proceso, "RECLUTADOS")
+        return ruta_proceso, ruta_reclutados
+    
+
+    def save_job_description(self, folder_path, description):
+       """Guarda la descripción del puesto en un archivo de texto dentro de la carpeta del proceso."""
+       try:
+           file_path = os.path.join(folder_path, "descripcion_puesto.txt")
+           with open(file_path, "w", encoding="utf-8") as f:
+               f.write(description)
+           return True
+       except Exception as e:
+           print(f"Error al guardar la descripción: {e}")
+           return False

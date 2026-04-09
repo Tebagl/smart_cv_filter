@@ -265,25 +265,29 @@ class SmartCVFilterApp(ctk.CTk):
         if path:
             self.input_folder.set(path)
 
+
     def run_analysis(self):
         puesto = self.entry_puesto.get().strip()
         fecha = self.entry_fecha.get().strip()
         folder_path = self.input_folder.get().strip()
+        user_description = self.jd_textbox.get("0.0", "end").strip() # Obtenemos la JD
 
         # Validaciones simples de UI
-        if not folder_path or not puesto:
-            self.log_text.insert("end", "⚠️ ERROR: Faltan datos obligatorios.\n")
+        if not folder_path or not puesto or not user_description:
+            self.log_text.insert("end", "⚠️ ERROR: Faltan datos obligatorios (Carpeta, Puesto o Descripción).\n")
             return
 
-        # 🎯 LA MAGIA: Delegamos la creación de carpetas al Manager
-        self.results_dir = self.process_manager.configure_process(puesto, fecha)
+        # 🎯 CAPTURAMOS AMBAS RUTAS
+        main_folder, self.results_dir = self.process_manager.configure_process(puesto, fecha)
+
+        # 💾 GUARDAMOS LA DESCRIPCIÓN en la carpeta raíz
+        self.process_manager.save_job_description(main_folder, user_description)
 
         # Bloquear botón e iniciar hilo
-        user_description = self.jd_textbox.get("0.0", "end").strip()
         self.btn_analyze.configure(state="disabled")
-        
         threading.Thread(target=self.analysis_worker, args=(user_description,), daemon=True).start()
         
+
     def analysis_worker(self, user_job_desc):
         try:
 
@@ -319,7 +323,8 @@ class SmartCVFilterApp(ctk.CTk):
         except Exception as e:
             self.log_queue.put(f"❌ Error crítico: {e}")
             self.log_queue.put("FIN")
-            
+
+
     def check_queues(self):
         try:
             while not self.log_queue.empty():
@@ -334,6 +339,7 @@ class SmartCVFilterApp(ctk.CTk):
         except:
             pass
         self.after(100, self.check_queues)
+
 
 if __name__ == "__main__":
     ctk.set_appearance_mode("dark")

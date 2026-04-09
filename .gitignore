@@ -116,3 +116,9 @@ ai-specs/changes/*/artifacts/
 .roo/
 ai-specs/
 openspec/
+
+# AI Model Assets (Evitar subir el modelo físico de 400MB+)
+models/.locks/
+models/models--*
+models/cv_model/*.safetensors
+models/cv_model/*.bin
