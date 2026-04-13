@@ -40,14 +40,44 @@ class CVHandler:
             return ""
         
     def _extract_text_from_docx(self, docx_path):
-        """Extrae texto de archivos de Microsoft Word."""
+        import sys
+        print(f"\n>>> HILO VIVO: Intentando abrir {docx_path}", flush=True)
+        
         try:
-            doc = docx.Document(docx_path)
-            full_text = [para.text for para in doc.paragraphs]
-            return "\n".join(full_text)
+            from docx import Document
+            print(">>> LIBRERÍA CARGADA CORRECTAMENTE", flush=True)
+            doc = Document(docx_path)
+            
+            text_parts = []
+
+            # 1. Extraer párrafos normales
+            for para in doc.paragraphs:
+                if para.text.strip():
+                    text_parts.append(para.text)
+
+            # 2. Extraer texto dentro de TABLAS (Crucial para CVs de internet)
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        # Limpiamos el texto de la celda
+                        cell_text = cell.text.strip()
+                        if cell_text and cell_text not in text_parts:
+                            text_parts.append(cell_text)
+            
+            final_text = "\n".join(text_parts)
+            
+            # Verificación en terminal
+            if final_text.strip():
+                print(f"✅ ÉXITO: {len(final_text)} caracteres extraídos.", flush=True)
+            else:
+                print(f"⚠️ AVISO: El documento parece estar realmente vacío de texto.", flush=True)
+                
+            return final_text
+
         except Exception as e:
-            logger.error(f"Error leyendo DOCX {docx_path}: {e}")
+            print(f">>> ERROR DETECTADO: {e}", flush=True)
             return ""
+        
 
     def process_cv(self, file_path: str, user_job_desc: str = None):
         """
@@ -77,19 +107,30 @@ class CVHandler:
             reason = "No se pudo extraer una explicación detallada."
             texto_ia = str(decision)
 
-            # 1. Extraer el score (primer número 0-100 que encuentre)
-            numeros = re.findall(r'\b(?:\d{1,2}|100)\b', texto_ia)
-            if numeros:
-                f_score = int(numeros[0])
-            
-            # 2. Limpiar el motivo (quitar el formato JSON feo para el log)
-            reason = texto_ia
-            if '"motivo":' in texto_ia or "'motivo':" in texto_ia:
-                match = re.search(r"['\"]motivo['\"]\s*:\s*['\"](.*?)['\"]", texto_ia, re.DOTALL)
-                if match:
-                    reason = match.group(1)
+            # 1. Extraer el score buscando específicamente la palabra "score" o el formato "XX%"
+            match_score = re.search(r'score["\']?\s*[:\-]\s*(\d+)', texto_ia.lower())
+            if match_score:
+                f_score = int(match_score.group(1))
             else:
-                reason = re.sub(r'^\d+[%]?\s*[:-]?\s*', '', texto_ia).strip()
+                # Si falla, busca números pero evita los de los formatos JSON
+                numeros = re.findall(r'\b\d{2,3}\b', texto_ia) # Busca números de 2 o 3 cifras
+                f_score = int(numeros[0]) if numeros else 0
+
+            # 2.--- EXTRACCIÓN DEL MOTIVO (Jerarquía de Seguridad) ---
+            # Plan A: Buscar formato JSON
+            match_json = re.search(r'["\']motivo["\']\s*:\s*["\'](.*?)(?=["\']\s*[,\}])', texto_ia, re.DOTALL | re.IGNORECASE)
+            # Plan B: Buscar texto natural (después de "motivo:")
+            match_natural = re.search(r'(?:motivo|razón|explicación)\s*[:\-]\s*(.*)', texto_ia, re.DOTALL | re.IGNORECASE)
+
+            if match_json:
+                reason = match_json.group(1).strip()
+            elif match_natural:
+                reason = match_natural.group(1).strip()
+            else:
+                reason = texto_ia.strip()
+
+            # Esto evita que se vean símbolos extraños en el Log de la pantalla
+            reason = reason.replace('\\xa0', ' ').replace('\\n', '\n').replace('\\"', '"').replace('\\', '').strip()
 
             # --- Lógica de carpetas y Renombrado por Score ---
             nombre_original = os.path.basename(file_path)

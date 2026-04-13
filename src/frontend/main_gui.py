@@ -10,15 +10,14 @@ import platform
 import subprocess
 
 # --- Configuración de Rutas ---
-# --- Configuración de Rutas ---
 def get_resource_path():
-    """Ruta para archivos internos (modelos, código empaquetado)"""
-    try:
-        # PyInstaller crea una carpeta temporal y guarda la ruta en _MEIPASS
+    """Ruta para archivos internos (código, iconos, etc.)"""
+    if getattr(sys, 'frozen', False):
+        # Estamos en el ejecutable
         return sys._MEIPASS
-    except Exception:
-        # Si ejecutamos el .py normalmente
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    
+    # Estamos en desarrollo: subimos desde src/frontend/ a la raíz
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 def get_executable_path():
     """Ruta donde reside el archivo .exe o el binario (para carpetas de salida)"""
@@ -29,7 +28,7 @@ def get_executable_path():
     return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 # Definimos las dos rutas críticas
-resource_path = get_resource_path()    # Para buscar 'models'
+resource_path = get_resource_path()    
 executable_path = get_executable_path() # Para crear 'procesos_seleccion'
 
 # Importante: los imports del backend deben buscarse en resource_path
@@ -156,7 +155,7 @@ class SmartCVFilterApp(ctk.CTk):
         console_frame.pack(fill="x", side="bottom", padx=10, pady=(5, 10))
         
         ctk.CTkLabel(console_frame, text="🖥️ Log de procesamiento:", font=("Arial", 11, "bold")).pack(anchor="w", padx=10, pady=(5, 0))
-        self.log_text = ctk.CTkTextbox(console_frame, height=120, fg_color="#1a1a1a", text_color="#00ff00", font=("Courier", 12))
+        self.log_text = ctk.CTkTextbox(console_frame, height=120, fg_color="#1a1a1a", text_color="#00ff00", font=("Courier", 12),wrap="word")
         self.log_text.pack(fill="x", padx=10, pady=10)
 
     # --- Funciones de Soporte para Clic Derecho ---

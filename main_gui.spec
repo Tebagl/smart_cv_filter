@@ -1,22 +1,23 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('.venv/lib/python3.10/site-packages/customtkinter', 'customtkinter'), ('src/backend', 'src/backend'), ('models/cv_model', 'models/cv_model')]
+# 1. Definimos qué carpetas extras necesita el programa
+# Incluimos el código de src para que el ejecutable encuentre el backend
+datas = [
+    ('src', 'src'), 
+]
+
 binaries = []
-hiddenimports = []
+hiddenimports = [
+    'docx', 
+    'odf', 
+    'fitz', 
+    'requests'
+]
+
+# 2. Recolectamos automáticamente lo necesario para CustomTkinter (la interfaz)
 tmp_ret = collect_all('customtkinter')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('spacy')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('es_core_news_sm')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('sentence_transformers')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('torch')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('pymupdf')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-
 
 a = Analysis(
     ['src/frontend/main_gui.py'],
@@ -27,10 +28,17 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        'torch', 
+        'spacy', 
+        'sentence_transformers', 
+        'numpy', 
+        'matplotlib'
+    ], # Excluimos lo pesado que no usamos
     noarchive=False,
     optimize=0,
 )
+
 pyz = PYZ(a.pure)
 
 exe = EXE(
@@ -38,18 +46,19 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='main_gui',
+    name='SmartCVFilter', # Nombre del ejecutable final
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,
+    console=False, # Pon True si quieres ver una terminal de debug al abrirlo
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
 )
+
 coll = COLLECT(
     exe,
     a.binaries,
@@ -57,5 +66,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='main_gui',
+    name='SmartCVFilter',
 )

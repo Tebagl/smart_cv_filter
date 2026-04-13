@@ -1,16 +1,20 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('src', 'src'), ('models', 'models')]
+# Solo incluimos el código fuente (src)
+datas = [('src', 'src')]
 binaries = []
-hiddenimports = []
+hiddenimports = [
+    'docx', 
+    'odf', 
+    'fitz', 
+    'requests',
+    'PIL._tkinter_finder'
+]
+
+# Recolectamos CustomTkinter (interfaz)
 tmp_ret = collect_all('customtkinter')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('sentence_transformers')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('torch')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-
 
 a = Analysis(
     ['src/frontend/main_gui.py'],
@@ -21,10 +25,12 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    # EXCLUIMOS todo lo pesado que NO usamos
+    excludes=['torch', 'sentence_transformers', 'spacy', 'numpy', 'IPython', 'PIL.ImageQt'],
     noarchive=False,
     optimize=0,
 )
+
 pyz = PYZ(a.pure)
 
 exe = EXE(
@@ -37,13 +43,14 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,
+    console=False, # Pon True solo si necesitas ver errores en una terminal negra al abrirlo
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
 )
+
 coll = COLLECT(
     exe,
     a.binaries,
