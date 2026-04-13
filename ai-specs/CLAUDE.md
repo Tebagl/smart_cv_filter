@@ -1,1 +1,0 @@
-specs/base-standards.mdc

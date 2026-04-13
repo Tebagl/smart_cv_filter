@@ -1,27 +1,37 @@
-# Python Specific Ignores
+# =============================================================
+# SMART CV FILTER - GLOBAL GITIGNORE (ULTRA-COMPLETE VERSION)
+# =============================================================
+
+# --- 🐍 PYTHON CORE & VIRTUAL ENV ---
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Virtual Environment
+*.so
+.Python
 .venv/
 venv/
 ENV/
 env/
 env.bak/
-.env
 .venv.lock
+pyvenv.cfg
+# Bloqueo de carpetas de instalación local (Windows/Linux)
+Lib/
+lib/
+lib64/
+bin/
+include/
+share/
+site-packages/
+*.dist-info/
 
-# Distribution / packaging
-.Python
+# --- 📦 DISTRIBUTION & PACKAGING ---
 build/
 develop-eggs/
 dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -29,26 +39,72 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.tar.gz
+*.zip
+*.png
+*.jpg
 MANIFEST
 
-# Database Files
+# --- 🤖 AI, MACHINE LEARNING & MODELS ---
+# Ignora modelos físicos pesados y artefactos de entrenamiento
+models/
+*.model
+*.pkl
+*.joblib
+*.safetensors
+*.bin
+*.tmp
+# Spacy & NLP artifacts
+es_core_news_lg-*/
+.cache/
+.pip-cache/
+
+# --- 📂 PROJECT SPECIFIC (OUTPUT DATA) ---
+# NUNCA subir datos de candidatos o resultados de procesos
+Scripts/
+pruebas_smart_cv_filter/
+procesos_seleccion/
+Procesos/
+results/
+smart_cv_filter.db
+smart_cv_filter.log*
+
+# --- 📊 DATABASE, LOGS & PERF ---
 *.db
 *.sqlite3
 *.sqlite
-
-# Logs
 logs/
 *.log
 .log/
+*.prof
+*.lprof
 
-# IDE and Editor Specific
-.idea/
+# --- 🛠️ IDE, EDITORS & AI TOOLS ---
+# VS Code, IntelliJ, Cursor, Roo-Code, Gemini
 .vscode/
+.idea/
+.cursor/
+.gemini/
+.roo/
+ai-specs/
+openspec/
 *.swp
 *.swo
 *~
 
-# OS Generated Files
+# --- 🧪 TESTING & DOCS ---
+.ipynb_checkpoints
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# --- 🔐 SENSITIVE INFORMATION ---
+.env
+*.key
+secrets.json
+
+# --- 🐧 OS GENERATED FILES ---
 .DS_Store
 .DS_Store?
 ._*
@@ -56,69 +112,6 @@ logs/
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# Sensitive Information
-.env
-*.key
-secrets.json
-
-# Machine Learning / AI Model Artifacts
-*.model
-*.pkl
-*.joblib
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Pytest
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Mypy
-.mypy_cache/
-
-# Spacy Language Models
-es_core_news_lg-*/
-
-# Temporary Files
-*.tmp
 *.bak
-*.swp
-*.swo
-
-# Backup Files
 *.backup
 *.bkp
-
-# Profiling and Performance
-*.prof
-*.lprof
-
-# Dependency Caches
-.cache/
-.pip-cache/
-
-# Project Specific Ignores
-smart_cv_filter.db
-smart_cv_filter.log*
-# No subir los resultados de las clasificaciones (CVs de candidatos)
-procesos_seleccion/
-Procesos/
-
-# Specific Project Artifacts
-openspec/changes/*/artifacts/
-ai-specs/changes/*/artifacts/
-
-# AI ,Gemini and Cursor Specific
-.gemini/
-.cursor/
-.roo/
-ai-specs/
-openspec/
-
-# AI Model Assets (Evitar subir el modelo físico de 400MB+)
-models/.locks/
-models/models--*
-models/cv_model/*.safetensors
-models/cv_model/*.bin

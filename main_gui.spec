@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('src/backend', 'src/backend'), ('models/cv_model', 'models/cv_model')]
+datas = [('.venv/lib/python3.10/site-packages/customtkinter', 'customtkinter'), ('src/backend', 'src/backend'), ('models/cv_model', 'models/cv_model')]
 binaries = []
 hiddenimports = []
 tmp_ret = collect_all('customtkinter')
@@ -12,11 +12,9 @@ tmp_ret = collect_all('es_core_news_sm')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('sentence_transformers')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('transformers')
+tmp_ret = collect_all('torch')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('tokenizers')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('scipy')
+tmp_ret = collect_all('pymupdf')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
@@ -29,7 +27,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['matplotlib'],
+    excludes=[],
     noarchive=False,
     optimize=0,
 )

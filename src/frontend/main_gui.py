@@ -185,6 +185,7 @@ class SmartCVFilterApp(ctk.CTk):
             pass
 
     # --- Lógica de la Aplicación ---
+    
     def update_top_candidates(self):
         # Limpiamos la lista actual
         for widget in self.candidates_list.winfo_children():
@@ -198,29 +199,35 @@ class SmartCVFilterApp(ctk.CTk):
             archivos = [f for f in os.listdir(self.results_dir) 
                        if f.lower().endswith(('.txt', '.pdf', '.docx'))]
             
-            # 2. ORDENAR: Al tener el score al principio (ej: "95_cv..."), 
-            # sort(reverse=True) pondrá los más altos arriba automáticamente.
+            # 2. ORDENAR: Los más altos arriba
             archivos.sort(reverse=True)
             
             for nombre in archivos:
-                ruta_completa = os.path.join(self.results_dir, nombre)
-                
-                # Opcional: Limpiar el nombre para la interfaz (quitar el prefijo del score)
-                # si quieres que se vea más limpio, aunque dejarlo ayuda a confirmar el orden.
-                display_name = nombre 
+                # --- 🛡️ PARCHE DE SEGURIDAD: FILTRO DE SCORE ---
+                # Intentamos extraer el número del principio del nombre (ej: "70_C.V.pdf")
+                try:
+                    score_str = nombre.split('_')[0]
+                    score_val = int(score_str)
+                except (ValueError, IndexError):
+                    score_val = 0 # Si no hay número, lo ignoramos
 
-                btn = ctk.CTkButton(
-                    self.candidates_list, 
-                    text=f"⭐ {display_name}",
-                    fg_color="#34495e",
-                    hover_color="#1f538d",
-                    anchor="w",
-                    command=lambda r=ruta_completa: self.open_candidate_cv(r)
-                )
-                btn.pack(fill="x", pady=2, padx=5)
-                
+                # SOLO añadimos a la lista de la derecha si supera el umbral (60%)
+                if score_val >= 60:
+                    ruta_completa = os.path.join(self.results_dir, nombre)
+                    display_name = nombre 
+
+                    btn = ctk.CTkButton(
+                        self.candidates_list, 
+                        text=f"⭐ {display_name}",
+                        fg_color="#34495e",
+                        hover_color="#1f538d",
+                        anchor="w",
+                        command=lambda r=ruta_completa: self.open_candidate_cv(r)
+                    )
+                    btn.pack(fill="x", pady=2, padx=5)    
         except Exception as e:
             logger.error(f"Error actualizando lista visual: {e}")
+
 
     def open_candidate_cv(self, file_path):
         if not os.path.exists(file_path):
@@ -244,6 +251,8 @@ class SmartCVFilterApp(ctk.CTk):
                 
         except Exception as e:
             self.log_text.insert("end", f"❌ Error al abrir: {e}\n")
+
+
     def select_input_folder(self):
         from tkinter import filedialog
         import os
@@ -276,6 +285,10 @@ class SmartCVFilterApp(ctk.CTk):
         if not folder_path or not puesto or not user_description:
             self.log_text.insert("end", "⚠️ ERROR: Faltan datos obligatorios (Carpeta, Puesto o Descripción).\n")
             return
+        
+        self.log_text.insert("end", "⏳ Iniciando IA: Cargando modelo en memoria (la primera vez puede tardar varios minutos)...\n")
+        self.log_text.see("end")
+
 
         # 🎯 CAPTURAMOS AMBAS RUTAS
         main_folder, self.results_dir = self.process_manager.configure_process(puesto, fecha)
