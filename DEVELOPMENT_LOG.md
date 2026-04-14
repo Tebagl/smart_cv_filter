@@ -192,3 +192,63 @@ Fase actual: Refactorización y Gestión Documental Avanzada (Módulo 5)
 * **DUDAS:** Score entre 50% y 69%.
 * **DESCARTADOS:** Score < 50% o 0 coincidencias técnicas (Penalización de 20 pts).
 * **Modelo Utilizado:** `paraphrase-multilingual-MiniLM-L12-v2` (100% Local).
+
+# DEVELOPMENT_LOG
+
+## Estado del Proyecto
+Fase actual: Finalización de Persistencia de Datos y Trazabilidad (Módulo 6)
+
+## Especificaciones Técnicas
+- **Análisis Semántico Local**: Uso de `sentence-transformers` (`paraphrase-multilingual-MiniLM-L12-v2`) para evaluación 100% offline.
+- **Persistencia de Trazabilidad (CSV)**: Generación automática de un archivo `resumen_proceso.csv` en la raíz de cada proceso. Utiliza el modo *append* para permitir auditorías cronológicas y evitar la pérdida de datos entre sesiones.
+- **Arquitectura de Procesos**: Implementación de un `ProcessManager` que centraliza la creación de estructuras de carpetas y el guardado de metadatos (JD y Reportes), desacoplando la lógica de archivos del `CVHandler`.
+- **Sincronización UI-Proyecto**: Capacidad de reanudación de sesiones mediante la lectura dinámica de la carpeta de destino, extrayendo metadatos del nombre del directorio y archivos `.txt` internos.
+
+## Registro de Cambios (Changelog)
+
+- [2026-03-20] Documento DEVELOPMENT_LOG.md inicializado.
+- [2026-03-20] Módulo 1: UniversalExtractor completado.
+- [2026-03-23] Módulo 4: Interfaz de Usuario de Escritorio (v0.6) con `customtkinter`.
+- [2026-03-26] **Hito: Transición a Arquitectura de IA 100% Local**.
+- [2026-04-08] Módulo 5: Motor de Análisis Blindado (Parche de Negaciones) y Gestión por Proyectos.
+- [2026-04-10] **Módulo 6: Trazabilidad, Persistencia y Estabilidad (v1.1)**:
+    * **Implementación de ProcessManager**: Nueva clase encargada de la infraestructura física. Maneja la creación de la carpeta madre `procesos_seleccion` de forma automática al lado del ejecutable.
+    * **Reporte de Auditoría (CSV)**:
+        * Creación de `resumen_proceso.csv` por cada proyecto.
+        * Registro detallado: Nombre de archivo, Score, Decisión y Motivo técnico de la IA.
+    * **Sistema de Memoria de Sesión**:
+        * Carga automática de metadatos (Puesto, Fecha, JD) al seleccionar una carpeta de proceso existente.
+        * Refresco de la lista de candidatos "Estrella" en la UI basándose en el contenido previo de la carpeta `RECLUTADOS/`.
+    * **Blindaje de Interfaz (UX)**:
+        * Bloqueo de seguridad (`readonly`) en el campo Fecha para mantener integridad en el nombrado de carpetas.
+        * Reordenación del flujo en `run_analysis`: Validación previa -> Creación de Entorno -> Sincronización UI -> Ejecución.
+    * **Compatibilidad Multiplataforma**:
+        * Resolución de **Segmentation Fault** en sistemas Linux mediante la activación diferida del modo oscuro (`app.after`).
+        * Inyección de rutas dinámicas mediante `executable_path` para garantizar portabilidad en unidades USB o red.
+
+## Detalles de Implementación de GUI
+- **Framework**: `customtkinter`.
+- **Novedades**:
+    * Campo de destino pre-rellenado con la ruta maestra automática.
+    * Sincronización bidireccional: La UI refleja los cambios del sistema de archivos al explorar carpetas antiguas.
+    * Corrección de crash en Linux: Desacoplamiento de la inicialización gráfica de la lógica de temas del SO.
+
+## Próximos Pasos
+- **Optimización de Memoria**: Implementar descarga de modelos de RAM tras inactividad prolongada.
+- **Empaquetado Final**: Configurar `PyInstaller` con el flag `--add-data` para incluir el modelo de IA y la estructura inicial de `procesos_seleccion`.
+- **Filtros Avanzados**: Permitir filtrar el CSV de resultados directamente desde la interfaz de usuario.
+
+---
+
+### 📝 Registro de Calibración Final (Módulo 6)
+**Fecha:** 2026-04-10  
+**Estado:** Estable y Validado para Producción
+
+> **[2026-04-10] Persistencia y Trazabilidad:**
+> Se valida la integridad del archivo CSV. Las pruebas confirman que los registros se añaden correctamente sin sobrescribir análisis anteriores, permitiendo un seguimiento histórico completo del proceso de selección. Se confirma que la carga de procesos antiguos recupera el 100% de la información visual.
+
+#### Resumen de Configuración de Entorno:
+* **Carpeta Raíz Defecto:** `./procesos_seleccion/` (Local al ejecutable).
+* **Formato de Salida:** `[Score]_CV_[Nombre].pdf`.
+* **Archivo de Auditoría:** `resumen_proceso.csv` (Delimitado por `;`).
+* **Estabilidad Linux:** Garantizada mediante X11 backend y carga diferida de estilos.
