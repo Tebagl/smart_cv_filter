@@ -91,3 +91,13 @@ Este programa es **100% Local**.
 
 ---
 *Smart CV Filter - Transformando el reclutamiento con IA Ética y Local.*
+
+<img width="1293" height="725" alt="Captura desde 2026-04-13 21-39-14" src="https://github.com/user-attachments/assets/b853be37-99e8-4d56-842d-9b8b70a3f536" />
+<img width="1293" height="725" alt="Captura desde 2026-04-13 21-38-44" src="https://github.com/user-attachments/assets/74bb4f3c-917f-490b-86be-c07f6bed3907" />
+<img width="1293" height="725" alt="Captura desde 2026-04-13 19-52-02" src="https://github.com/user-attachments/assets/3a87e9e4-79a4-42e1-b64d-73fd3c938ec2" />
+<img width="1294" height="743" alt="Captura desde 2026-04-14 11-27-41" src="https://github.com/user-attachments/assets/f6694eea-0a5a-447a-970a-a807df205a15" />
+<img width="1294" height="743" alt="Captura desde 2026-04-14 11-28-37" src="https://github.com/user-attachments/assets/fec08e1f-21a8-4efb-9f2f-f6abfbd5e29d" />
+
+
+
+
