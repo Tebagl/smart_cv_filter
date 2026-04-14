@@ -51,13 +51,17 @@ class SmartCVFilterApp(ctk.CTk):
         # 🚀 Inicialización de Backend
         self.analyzer = CVAnalyzer() 
         self.cv_handler = CVHandler(self.analyzer)
+        # 1. Define la 'Carpeta Madre' por defecto
+        self.default_dest_path = os.path.join(executable_path, "procesos_seleccion")
+        # Si no existe, se crea
+        if not os.path.exists(self.default_dest_path):
+            os.makedirs(self.default_dest_path)
+            logger.info(f"📁 Carpeta maestra creada en: {self.default_dest_path}")
+
+        # Pasa esta ruta al ProcessManager
         self.process_manager = ProcessManager(executable_path, self.cv_handler)
-        
         self.results_dir = "" # Se llenará al dar a Clasificar
         
-        # Ruta de resultados (Asegúrate de que coincida con RECLUTADOS en mayúsculas)
-        #self.results_dir = os.path.join(base_path, "src", "backend", "output", "RECLUTADOS")
-
         # Configuración de la ventana
         self.title("Smart CV Filter")
         self.geometry("900x700")
@@ -99,6 +103,7 @@ class SmartCVFilterApp(ctk.CTk):
         ctk.CTkLabel(process_info_frame, text="📅 Fecha:", font=("Arial", 12, "bold")).pack(side="left", padx=10)
         self.entry_fecha = ctk.CTkEntry(process_info_frame, width=120)
         self.entry_fecha.insert(0, fecha_hoy)
+        self.entry_fecha.configure(state="readonly") # 🔒 Bloqueado desde el inicio
         self.entry_fecha.pack(side="left", padx=5)
 
         # --- SECCIÓN 1: CARPETA DE ENTRADA (ARRIBA) ---
@@ -108,6 +113,19 @@ class SmartCVFilterApp(ctk.CTk):
         ctk.CTkLabel(folder_frame, text="📂 Carpeta de entrada:", font=("Arial", 12, "bold")).pack(side="left", padx=10)
         ctk.CTkEntry(folder_frame, textvariable=self.input_folder, width=350).pack(side="left", padx=5, expand=True, fill="x")
         ctk.CTkButton(folder_frame, text="Explorar", width=100, command=self.select_input_folder).pack(side="right", padx=10)
+
+        # --- SECCIÓN: CARPETA DE DESTINO (En create_widgets) ---
+        dest_frame = ctk.CTkFrame(main_frame)
+        dest_frame.pack(fill="x", padx=10, pady=5)
+
+        ctk.CTkLabel(dest_frame, text="🎯 Destino:", font=("Arial", 12, "bold")).pack(side="left", padx=10)
+
+        self.entry_destino = ctk.CTkEntry(dest_frame, width=350)
+        # Mostramos la carpeta MADRE por defecto
+        self.entry_destino.insert(0, self.default_dest_path) 
+        self.entry_destino.pack(side="left", padx=5, expand=True, fill="x")
+
+        ctk.CTkButton(dest_frame, text="Explorar", width=100, command=self.select_destination_folder).pack(side="right", padx=10)
 
         # --- SECCIÓN 2: CONTENEDOR MEDIO (COLUMNAS) ---
         mid_container = ctk.CTkFrame(main_frame, fg_color="transparent")
@@ -182,6 +200,74 @@ class SmartCVFilterApp(ctk.CTk):
         except Exception as e:
             # Si el portapapeles no tiene texto (ej. una imagen), no hace nada
             pass
+    
+
+    def select_input_folder(self):
+        from tkinter import filedialog
+        import os
+        
+        # 1. Localizamos la ruta del Escritorio de forma dinámica
+        # Esto funciona en Windows, macOS y Linux
+        desktop_path = os.path.join(os.path.expanduser("~"), "Documents")
+        
+        # 2. Verificamos si existe (por si el SO tiene un nombre distinto)
+        if not os.path.exists(desktop_path):
+            desktop_path = os.path.expanduser("~") # Si no hay escritorio, abre su carpeta personal
+
+        # 3. Abrimos el buscador empezando en el escritorio (initialdir)
+        path = filedialog.askdirectory(
+            initialdir=desktop_path,
+            title="Selecciona la carpeta con los CVs"
+        )
+        
+        if path:
+            self.input_folder.set(path)
+
+
+    def select_destination_folder(self):
+        from tkinter import filedialog
+        path = filedialog.askdirectory(initialdir=self.default_dest_path, title="Seleccionar Proceso")
+        
+        if path:
+            self.entry_destino.delete(0, "end")
+            self.entry_destino.insert(0, path)
+            
+            # 1. 📂 Detectar si es un proceso existente (buscamos la carpeta RECLUTADOS)
+            ruta_reclutados = os.path.join(path, "RECLUTADOS")
+            if os.path.exists(ruta_reclutados):
+                self.results_dir = ruta_reclutados
+                
+                # 2. 📅 Sincronizar FECHA y PUESTO desde el nombre de la carpeta
+                nombre_folder = os.path.basename(path)
+                if len(nombre_folder) >= 10 and "-" in nombre_folder:
+                    fecha_orig = nombre_folder[:10]
+                    # El puesto suele ser lo que va después del primer "_" (ej: 2026-04-10_Contable)
+                    puesto_orig = nombre_folder[11:].replace("_", " ") if len(nombre_folder) > 11 else ""
+                    
+                    # Actualizar Fecha
+                    self.entry_fecha.configure(state="normal")
+                    self.entry_fecha.delete(0, "end")
+                    self.entry_fecha.insert(0, fecha_orig)
+                    self.entry_fecha.configure(state="readonly")
+                    
+                    # Actualizar Puesto
+                    self.entry_puesto.delete(0, "end")
+                    self.entry_puesto.insert(0, puesto_orig)
+
+                # 3. 📝 Cargar DESCRIPCIÓN (JD) desde el archivo .txt
+                ruta_jd = os.path.join(path, "descripcion_puesto.txt")
+                if os.path.exists(ruta_jd):
+                    try:
+                        with open(ruta_jd, "r", encoding="utf-8") as f:
+                            contenido_jd = f.read()
+                        self.jd_textbox.delete("0.0", "end")
+                        self.jd_textbox.insert("0.0", contenido_jd)
+                    except Exception as e:
+                        logger.error(f"Error al leer JD: {e}")
+
+                # 4. ⭐ Cargar lista de CANDIDATOS
+                self.update_top_candidates()
+                self.log_text.insert("end", f"✅ Proceso '{puesto_orig}' cargado correctamente.\n")
 
     # --- Lógica de la Aplicación ---
     
@@ -252,50 +338,44 @@ class SmartCVFilterApp(ctk.CTk):
             self.log_text.insert("end", f"❌ Error al abrir: {e}\n")
 
 
-    def select_input_folder(self):
-        from tkinter import filedialog
-        import os
-        
-        # 1. Localizamos la ruta del Escritorio de forma dinámica
-        # Esto funciona en Windows, macOS y Linux
-        desktop_path = os.path.join(os.path.expanduser("~"), "Documents")
-        
-        # 2. Verificamos si existe (por si el SO tiene un nombre distinto)
-        if not os.path.exists(desktop_path):
-            desktop_path = os.path.expanduser("~") # Si no hay escritorio, abre su carpeta personal
-
-        # 3. Abrimos el buscador empezando en el escritorio (initialdir)
-        path = filedialog.askdirectory(
-            initialdir=desktop_path,
-            title="Selecciona la carpeta con los CVs"
-        )
-        
-        if path:
-            self.input_folder.set(path)
-
-
+    
     def run_analysis(self):
+        # Captura los datos de la interfaz
         puesto = self.entry_puesto.get().strip()
-        fecha = self.entry_fecha.get().strip()
-        folder_path = self.input_folder.get().strip()
-        user_description = self.jd_textbox.get("0.0", "end").strip() # Obtenemos la JD
+        ruta_destino_base = self.entry_destino.get().strip() 
+        folder_path_entrada = self.input_folder.get().strip()
+        user_description = self.jd_textbox.get("0.0", "end").strip()
 
-        # Validaciones simples de UI
-        if not folder_path or not puesto or not user_description:
-            self.log_text.insert("end", "⚠️ ERROR: Faltan datos obligatorios (Carpeta, Puesto o Descripción).\n")
+        # Validaciones de UI (Si falta algo, sale)
+        if not folder_path_entrada or not puesto or not user_description or not ruta_destino_base:
+            self.log_text.insert("end", "⚠️ ERROR: Faltan datos (Entrada, Destino, Puesto o Descripción).\n")
+            self.log_text.see("end")
             return
         
-        self.log_text.insert("end", "⏳ Iniciando IA: Cargando modelo en memoria (la primera vez puede tardar varios minutos)...\n")
+        self.log_text.insert("end", "⏳ Preparando entorno de análisis...\n")
         self.log_text.see("end")
 
+        # El Manager crea o recupera la carpeta del proceso
+        main_folder, self.results_dir = self.process_manager.configure_process(puesto, ruta_destino_base)
 
-        # 🎯 CAPTURAMOS AMBAS RUTAS
-        main_folder, self.results_dir = self.process_manager.configure_process(puesto, fecha)
+        # Sincronización visual de la fecha y la lista
+        nombre_carpeta = os.path.basename(main_folder)
+        
+        # Actualiza la fecha en el cuadro (por si es un proceso antiguo)
+        if len(nombre_carpeta) >= 10 and nombre_carpeta.count("-") >= 2:
+            fecha_detectada = nombre_carpeta[:10]
+            self.entry_fecha.configure(state="normal")
+            self.entry_fecha.delete(0, "end")
+            self.entry_fecha.insert(0, fecha_detectada)
+            self.entry_fecha.configure(state="readonly")
 
-        # 💾 GUARDAMOS LA DESCRIPCIÓN en la carpeta raíz
+        # Muestra los CVs que ya estaban en la carpeta (Memoria Visual)
+        self.update_top_candidates()
+
+        # Guarda descripción y lanza el análisis
         self.process_manager.save_job_description(main_folder, user_description)
 
-        # Bloquear botón e iniciar hilo
+        # Bloquear botón e iniciar hilo de trabajo
         self.btn_analyze.configure(state="disabled")
         threading.Thread(target=self.analysis_worker, args=(user_description,), daemon=True).start()
         
@@ -354,7 +434,9 @@ class SmartCVFilterApp(ctk.CTk):
 
 
 if __name__ == "__main__":
-    ctk.set_appearance_mode("dark")
     ctk.set_widget_scaling(1.0)  # Fuerza escala 1:1
     app = SmartCVFilterApp()
+    # En lugar de fijarlo a lo bruto, usamos after para esperar 200ms
+    # Esto suele evitar el Segmentation Fault en Linux
+    app.after(200, lambda: ctk.set_appearance_mode("dark"))
     app.mainloop()

@@ -5,6 +5,7 @@ import re
 import fitz  # PyMuPDF
 import docx # .docx
 from datetime import datetime
+import csv
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +78,27 @@ class CVHandler:
         except Exception as e:
             print(f">>> ERROR DETECTADO: {e}", flush=True)
             return ""
+        
+    def _append_to_report(self, data):
+        
+        if not self.base_output: # <--- Seguridad 
+            return
+        
+        """Añade una fila al archivo CSV de resumen."""
+        report_path = os.path.join(self.base_output, "resumen_proceso.csv")
+        file_exists = os.path.isfile(report_path)
+        
+        with open(report_path, mode='a', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=["Archivo", "Score", "Motivo", "Decision"])
+            if not file_exists:
+                writer.writeheader() # Si es nuevo, escribe la cabecera
+            
+            writer.writerow({
+                "Archivo": os.path.basename(data["dest_path"]),
+                "Score": data["score"],
+                "Motivo": data["reason"],
+                "Decision": data["decision"]
+            })
         
 
     def process_cv(self, file_path: str, user_job_desc: str = None):
@@ -156,6 +178,13 @@ class CVHandler:
             if os.path.exists(file_path):
                 # Usamos move pero con la ruta que contiene el nuevo_nombre
                 shutil.move(file_path, ruta_final)
+
+            self._append_to_report({
+                "dest_path": ruta_final,
+                "score": f_score,
+                "reason": reason,
+                "decision": destino
+            })
 
             return {
                 "status": "success",
